@@ -2,7 +2,6 @@ from typing import Optional
 from pydantic import BaseModel
 
 class Plant(BaseModel):
-    plantid: int
     plantName: str
     price: int
     size: str
@@ -26,15 +25,6 @@ class Login(BaseModel):
     password: str
     username: Optional[str] = None
     email: Optional[str] = None
-
-class CartProducts(BaseModel):
-    productId: int
-    quantity: int
-
-
-class AddtoCart(BaseModel):
-    userId: int
-    product: CartProducts
 
 
 class Billing(BaseModel):
@@ -89,20 +79,3 @@ class OrderModel(BaseModel):
     orderDate: str
     shipping: Shipping
     billing: Billing
-
-    
-
-class CustomerModel(BaseModel):
-    firstName: str
-    lastName: str
-    email: str
-    password: str
-    username: str
-
-class CartItem(BaseModel):
-    plant: Plant
-    quantity: int
-    
-
-class Cart(BaseModel):
-    items: list[CartItem] = []

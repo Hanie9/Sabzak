@@ -49,7 +49,7 @@ class NewPlantWidget extends StatelessWidget {
           return GestureDetector(
             onTap: () {
               Navigator.push(context, PageTransition(
-                child: DetailPage(plantId: plant.plantId),
+                child: DetailPage(plantId: plant.plantId! - 1),
                 type: PageTransitionType.bottomToTop,
                 ),
               );
@@ -85,10 +85,10 @@ class NewPlantWidget extends StatelessWidget {
                       child: SizedBox(
                         height: 80.0,
                         child:  FutureBuilder<String>(
-                          future: apiService.fetchPlantImage(plant.plantId),
+                          future: apiService.fetchPlantImage(plant.plantId! - 1),
                           builder: (context, imageSnapshot) {
                             if (imageSnapshot.connectionState == ConnectionState.waiting) {
-                              return const CircularProgressIndicator();
+                              return const Center(child: CircularProgressIndicator());
                             } else if (imageSnapshot.hasError) {
                               return const Icon(Icons.error);
                             } else {

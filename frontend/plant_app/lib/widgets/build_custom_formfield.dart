@@ -5,6 +5,9 @@ import 'package:plant_app/widgets/extensions.dart';
 class BuildCustomFormField extends StatelessWidget {
   final TextEditingController controller;
   final bool obscureText;
+  final int? maxlines;
+  final int? minlines;
+  final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   final Function(String)? onChanged;
   final TextDirection formFieldtextDirection;
@@ -13,6 +16,9 @@ class BuildCustomFormField extends StatelessWidget {
   const BuildCustomFormField({
     super.key,
     required this.controller,
+    this.maxlines,
+    this.minlines,
+    this.keyboardType,
     this.obscureText = false,
     this.validator,
     this.formFieldtextDirection = TextDirection.rtl,
@@ -25,6 +31,9 @@ class BuildCustomFormField extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: TextFormField(
+        keyboardType: keyboardType,
+        minLines: minlines,
+        maxLines: maxlines,
         obscureText: obscureText,
         onChanged: onChanged,
         controller: controller,

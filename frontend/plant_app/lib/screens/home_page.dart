@@ -5,6 +5,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:plant_app/api/api_service.dart';
 import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/plant.dart';
+import 'package:plant_app/providers/cart_provider.dart';
 import 'package:plant_app/providers/shop_provider.dart';
 import 'package:plant_app/screens/detail_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
@@ -62,15 +63,6 @@ class _HomePageState extends State<HomePage> {
           itemBuilder: (context, index){
             final plant = snapshot.data![index];
             return GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  CupertinoPageRoute(
-                    builder: (BuildContext context) {
-                      return DetailPage(plantId: plant.plantId,);
-                    },
-                  )
-                );
-              },
               child: Container(
                 width: 200.0,
                 margin: const EdgeInsets.symmetric(horizontal: 18.0),
@@ -92,10 +84,12 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: IconButton(
                           onPressed: (){
-                            
+                            setState(() {
+                              plant.isFavorated = toggleIsFavorite(plant.isFavorated);
+                            });
                           },
                           icon: Icon(
-                            Icons.favorite_border_outlined,
+                            plant.isFavorated ? Icons.favorite : Icons.favorite_border_outlined,
                             color: Constant.primaryColor,
                             size: 20.0,
                           ),
@@ -108,7 +102,7 @@ class _HomePageState extends State<HomePage> {
                       bottom: 50.0,
                       left: 50.0,
                       child: FutureBuilder<String>(
-                        future: apiService.fetchPlantImage(plant.plantId),
+                        future: apiService.fetchPlantImage((plant.plantId!) - 1),
                         builder: (context, imageSnapshot) {
                           if (imageSnapshot.connectionState == ConnectionState.waiting) {
                             return LoadingAnimationWidget.staggeredDotsWave(
@@ -178,6 +172,17 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+                onTap: () {
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (BuildContext context) {
+                      CartProvider().fetchCartItems();
+                      CartProvider().cartItems;
+                      return DetailPage(plantId: (plant.plantId!) - 1);
+                    },
+                  )
+                );
+              },
               );
             }
           );
@@ -209,133 +214,139 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 20.0),
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Constant.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                  width: size.width * 0.9,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.mic,
-                      ),
-                      Expanded(
-                        child: Directionality(
-                          textDirection: ui.TextDirection.rtl,
-                          child: TextField(
-                            textAlign: TextAlign.start,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                            ),
-                            showCursor: false,
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(right: 5.0),
-                              hintText: "جستجو",
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              hintStyle: TextStyle(
-                                fontFamily: 'iransans',
-                              )
+      body: RefreshIndicator(
+        onRefresh: () async {
+          futurePlants;
+          futureImages;
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Constant.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    width: size.width * 0.9,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.mic,
+                        ),
+                        Expanded(
+                          child: Directionality(
+                            textDirection: ui.TextDirection.rtl,
+                            child: TextField(
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                fontSize: 14.0,
+                              ),
+                              showCursor: false,
+                              decoration: InputDecoration(
+                                contentPadding: EdgeInsets.only(right: 5.0),
+                                hintText: "جستجو",
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                hintStyle: TextStyle(
+                                  fontFamily: 'iransans',
+                                )
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      Icon(
-                        Icons.search,
-                      ),
-                    ],
+                        Icon(
+                          Icons.search,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-              height: 70.0,
-              width: size.width,
-              child: ListView.builder(
-                reverse: true,
-                itemBuilder: (context, index){
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedindex = index;
-                        });
-                      },
-                      child: Text(
-                        plantTypes[index],
-                        style: TextStyle(
-                          fontFamily: 'Yekan Bakh',
-                          fontSize: 16.0,
-                          fontWeight: selectedindex == index ? FontWeight.bold : FontWeight.w300,
-                          color: selectedindex == index ? Constant.primaryColor : null,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                height: 70.0,
+                width: size.width,
+                child: ListView.builder(
+                  reverse: true,
+                  itemBuilder: (context, index){
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedindex = index;
+                          });
+                        },
+                        child: Text(
+                          plantTypes[index],
+                          style: TextStyle(
+                            fontFamily: 'Yekan Bakh',
+                            fontSize: 16.0,
+                            fontWeight: selectedindex == index ? FontWeight.bold : FontWeight.w300,
+                            color: selectedindex == index ? Constant.primaryColor : null,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-                itemCount: plantTypes.length,
-                scrollDirection: Axis.horizontal,
-              ),
-            ),
-            // Product 1
-            SizedBox(
-              height: size.height * 0.3,
-              child: _buildProducts(size, plantProvider, numberformat)
-            ),
-            //new plants text
-            Container(
-              padding: const EdgeInsets.only(right: 25.0, top: 20.0, bottom: 15.0),
-              alignment: Alignment.centerRight,
-              child: const Text(
-                'گیاهان جدید',
-                style: TextStyle(
-                  fontFamily: 'iransans',
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
+                    );
+                  },
+                  itemCount: plantTypes.length,
+                  scrollDirection: Axis.horizontal,
                 ),
               ),
-            ),
-            //new plants product 2
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18.0),
-              height: size.height * (0.3),
-              child: FutureBuilder<List<Plant>>(
-              future: futurePlants,
-              builder: (context, snapshot){
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: LoadingAnimationWidget.staggeredDotsWave(
-                    size: 50.0,
-                    color: Constant.primaryColor
-                  ));
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No plants available'));
-                } else {
-                  return ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index){
-                      return NewPlantWidget(index: index,);
-                      },
-                    );
+              // Product 1
+              SizedBox(
+                height: size.height * 0.3,
+                child: _buildProducts(size, plantProvider, numberformat)
+              ),
+              //new plants text
+              Container(
+                padding: const EdgeInsets.only(right: 25.0, top: 20.0, bottom: 15.0),
+                alignment: Alignment.centerRight,
+                child: const Text(
+                  'گیاهان جدید',
+                  style: TextStyle(
+                    fontFamily: 'iransans',
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              //new plants product 2
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                height: size.height * (0.3),
+                child: FutureBuilder<List<Plant>>(
+                future: futurePlants,
+                builder: (context, snapshot){
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: LoadingAnimationWidget.staggeredDotsWave(
+                      size: 50.0,
+                      color: Constant.primaryColor
+                    ));
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No plants available'));
+                  } else {
+                    return ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index){
+                        return NewPlantWidget(index: index,);
+                        },
+                      );
+                    }
                   }
-                }
-              )
-            ),
-          ],
+                )
+              ),
+            ],
+          ),
         ),
       ),
     );

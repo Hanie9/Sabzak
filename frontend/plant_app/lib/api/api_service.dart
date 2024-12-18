@@ -1,103 +1,8 @@
-// import 'dart:io';
-// import 'package:dio/dio.dart';
-// import 'package:plant_app/const/constants.dart';
-// import 'package:plant_app/models/login.dart';
-// import 'package:plant_app/models/plant.dart';
-// import 'package:plant_app/models/sign_up.dart';
-
-
-// class APIService {
-
-//   Future<bool> createCustomer(CustomerModel model) async {
-//     bool returnResponse = false;
-
-//     try {
-//       Response response = await Dio().post(
-//         Serverinfo.baseURL + Serverinfo.createuserURL,
-//         data: model.tojson(),
-//         options: Options(
-//           headers: {
-//             HttpHeaders.contentTypeHeader: 'application/json',
-//           }
-//         )
-//       );
-//       if (response.statusCode == 201){
-//         returnResponse = true;
-//       }
-//     } on DioException catch (e) {
-//       if (e.response!.statusCode == 404) {
-//         returnResponse = false;
-//       } else {
-//         returnResponse = false;
-//       }
-//     }
-//     return returnResponse;
-//   }
-
-
-
-//   Future<LoginResponseModel> logincustomer(
-//     String username,
-//     String password,
-//   ) async {
-//     try {
-//       Response response = await Dio().post(
-//         Serverinfo.baseURL + Serverinfo.loginuserURL,
-//         data: {
-//           'username' : username,
-//           'password' : password,
-//         },
-//         options: Options(
-//           headers: {
-//             HttpHeaders.contentTypeHeader : 'application/json',
-//           }
-//         )
-//       );
-//       if(response.statusCode == 200){
-//         return LoginResponseModel.fromJson(response.data);
-//       } else {
-//         return LoginResponseModel(message: response.toString());
-//       }
-//     } catch (e) {
-//       if(e is DioException){
-//         if(e.response?.data == null){
-//         return LoginResponseModel(message: 'هیچ داده ای دریافت نشد');
-//       }
-//       return LoginResponseModel.fromJson(e.response?.data);
-//       } else {
-//         return LoginResponseModel(message: e.toString());
-//       }
-//     }
-//   }
-
-  
-
-//   Future<List<Plant>> getPlants() async {
-//     final String plantURL = "${Serverinfo.baseURL}${Serverinfo.plantURL}";
-//     List<Plant> plantList = <Plant>[];
-
-//     try {
-//       Response response = await Dio().get(
-//         plantURL,
-//         options: Options(
-//           headers: {
-//             HttpHeaders.contentTypeHeader: 'application/json',
-//           }
-//         )
-//       );
-//       if(response.statusCode == 200){
-//         plantList = (response.data as List).map((i) => Plant.fromJson(i),).toList();
-//       }
-//     } on DioException catch (e) {
-//       throw 'Error $e';
-//     }
-//     return plantList;
-//   }
-
-// }
-
 import 'package:dio/dio.dart';
+import 'package:plant_app/models/cart_model.dart';
 import 'package:plant_app/models/plant.dart';
+import 'package:plant_app/models/users_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
@@ -185,6 +90,150 @@ class ApiService {
         print('Unexpected error: $e');
         return {'error': e.toString()};
       }
+    }
+  }
+
+  Future<List<Users>> getUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final response = await _dio.get(
+        '/users',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      return (response.data as List).map((user) => Users.fromJson(user)).toList();
+    } catch (e) {
+      throw Exception('Error fetching users: $e');
+    }
+  }
+
+  Future<bool> isAdmin(String sessionId) async {
+    try {
+      final response = await _dio.get('/is_admin/$sessionId');
+      if (response.statusCode == 200) {
+        return response.data as bool;
+      } else {
+        throw Exception('Failed to check admin status');
+      }
+    } catch (e) {
+      throw Exception('Error checking admin status: $e');
+    }
+  }
+
+  Future<void> saveSessionId(String sessionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('session_id', sessionId);
+  }
+
+  Future<String?> getSessionId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('session_id');
+  }
+
+  Future<void> addToCart(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.post(
+        '/cart/add/$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      throw Exception('Error adding to cart: $e');
+    }
+  }
+
+  Future<void> deleteCartItem(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.delete(
+        '/cart/delete/$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      throw Exception('Error deleting cart item: $e');
+    }
+  }
+
+  Future<List<CartItem>> getCartItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final response = await _dio.get(
+        '/cart',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      return (response.data as List).map((item) => CartItem.fromJson(item)).toList();
+    } catch (e) {
+      throw Exception('Error fetching cart items: $e');
+    }
+  }
+
+  Future<void> clearCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.delete(
+        '/cart/clear',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      throw Exception('Error clearing cart: $e');
+    }
+  }
+
+  Future<void> increaseQuantity(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.post(
+        '/cart/increase_quantity?plant_id=$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      throw Exception('Error increasing quantity: $e');
+    }
+  }
+
+  Future<void> decreaseQuantity(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.post(
+        '/cart/decrease_quantity?plant_id=$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      throw Exception('Error decreasing quantity: $e');
     }
   }
 

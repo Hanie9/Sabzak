@@ -1,5 +1,5 @@
 class Plant {
-  late int plantId;
+  late int? plantId;
   late int price;
   late String size;
   late double rating;
@@ -7,11 +7,11 @@ class Plant {
   late String temperature;
   late String category;
   late String plantName;
-  late bool isFavorated;
+  bool isFavorated = false; 
   late String? description;
 
   Plant({
-    required this.plantId,
+    this.plantId,
     required this.price,
     required this.category,
     required this.plantName,
@@ -33,7 +33,22 @@ class Plant {
     rating = json['rating'];
     humidity = json['humidity'];
     temperature = json['temperature'];
-    isFavorated = json['isfavorite'];
     category = json['category'];
+    isFavorated = json['isfavorite'];
+  }
+
+  Map<String,dynamic> toJson(){
+    final Map<String,dynamic> data = <String,dynamic>{};
+    data['plantName'] = plantName;
+    data['description'] = description;
+    data['price'] = price;
+    data['size'] = size;
+    data['rating'] = rating;
+    data['humidity'] = humidity;
+    data['temperature'] = temperature;
+    data['category'] = category;
+    data['isfavorite'] = isFavorated;
+
+    return data;
   }
 }

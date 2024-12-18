@@ -84,65 +84,66 @@ class _SignupPageState extends State<SignupPage> {
         children: [
           Positioned(
             top: 100.0,
-            left: 20.0,
+            left: 43.0,
             child: SizedBox(
               width: size.width * 0.8,
               height: size.height * 0.8,
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Form(
+                  key: _formKey,
                   child: Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: Column(
                       children: [
                         CustomFormField(
-                          lableName: "نام",
+                          lableName: "نام:",
                           textDirection: TextDirection.rtl,
                           controller: _firstNameController,
                           validator: CustomValidator.fieldMustComplete,
                         ),
                         const SizedBox(
-                          height: 30.0,
+                          height: 10.0,
                         ),
                         CustomFormField(
-                          lableName: "نام خانوادگی",
+                          lableName: "نام خانوادگی:",
                           textDirection: TextDirection.rtl,
                           controller: _lastNameController,
                           validator: CustomValidator.fieldMustComplete,
                         ),
                         const SizedBox(
-                          height: 30.0,
+                          height: 10.0,
                         ),
                         CustomFormField(
-                          lableName: "نام کاربری",
+                          lableName: "نام کاربری:",
                           textDirection: TextDirection.ltr,
                           controller: _usernameController,
                           validator: CustomValidator.fieldMustComplete,
                         ),
                         const SizedBox(
-                          height: 30.0,
+                          height: 10.0,
                         ),
                         CustomFormField(
-                          lableName: "ایمیل",
+                          lableName: "ایمیل:",
                           textDirection: TextDirection.ltr,
                           controller: _emailController,
                           validator: CustomValidator.emailValidator,
                         ),
                         const SizedBox(
-                          height: 30.0,
+                          height: 10.0,
                         ),
                         CustomFormField(
-                          lableName: "پسورد",
+                          lableName: "پسورد:",
                           obsecuretext: true,
                           textDirection: TextDirection.ltr,
                           controller: _passwordController,
                           validator: CustomValidator.passwordValidator,
                         ),
                         const SizedBox(
-                          height: 30.0,
+                          height: 20.0,
                         ),
-                        Row(
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Consumer<SignupProvider>(
                               builder: (context, provider, child) {
@@ -150,12 +151,23 @@ class _SignupPageState extends State<SignupPage> {
                                     ? const CircularProgressIndicator()
                                     : ElevatedButton(
                                         onPressed: _signup,
-                                        child: const Text('Sign Up'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Constant.primaryColor,
+                                          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
+                                        ),
+                                        child: const Text(
+                                          "ثبت نام",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontFamily: 'Yekan Bakh',
+                                            fontSize: 15.0,
+                                          ),
+                                        ),
                                       );
                               },
                             ),
                             const SizedBox(
-                              width: 20.0,
+                              width: 10.0,
                             ),
                             ElevatedButton(
                               onPressed: (){
@@ -168,12 +180,15 @@ class _SignupPageState extends State<SignupPage> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Constant.primaryColor,
+                                side: BorderSide(width: 2, color: Constant.primaryColor),
+                                backgroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
                               ),
-                              child: const Text(
-                                "قبلا اکانت ساختی؟",
+                              child: Text(
+                                "قبلا ثبت نام کردی؟",
                                 style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Constant.primaryColor,
                                   fontFamily: 'Yekan Bakh',
                                   fontSize: 15.0,
                                 ),

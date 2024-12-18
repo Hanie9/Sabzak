@@ -1,40 +1,94 @@
 import 'package:flutter/material.dart';
+import 'package:plant_app/api/api_service.dart';
 import 'package:plant_app/models/cart_model.dart';
-import 'package:plant_app/models/plant.dart';
 
 class CartProvider with ChangeNotifier {
-  Map<int, CartItem> _items = {};
+  final ApiService authService = ApiService();
+  List<CartItem> _cartItems = [];
+  bool _isLoading = false;
 
-  Map<int, CartItem> get items => _items;
+  List<CartItem> get cartItems => _cartItems;
+  bool get isLoading => _isLoading;
 
-  void addItem(Plant plant) {
-    if (_items.containsKey(plant.plantId)) {
-      _items[plant.plantId]!.quantity += 1;
-    } else {
-      _items[plant.plantId] = CartItem(plant: plant);
+  Future<void> fetchCartItems() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _cartItems = await authService.getCartItems();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
+
+  Future<void> addToCart(int plantId) async {
+    _isLoading = true;
     notifyListeners();
+    try {
+      final index = _cartItems.indexWhere((item) => item.plantId == plantId);
+      if(index >= 0){
+        await authService.increaseQuantity(plantId);
+      } else {
+      await authService.addToCart(plantId);
+      }
+      await fetchCartItems();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void removeItem(int plantId) {
-    _items.remove(plantId);
+  Future<void> deleteCartItem(int plantId) async {
+    _isLoading = true;
     notifyListeners();
+    try {
+      await authService.deleteCartItem(plantId);
+      await fetchCartItems();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void clearCart() {
-    _items = {};
+  Future<void> clearCart() async {
+    _isLoading = true;
     notifyListeners();
+    try {
+      await authService.clearCart();
+      await fetchCartItems();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  int get itemCount {
-    return _items.length;
+  Future<void> increaseQuantity(int plantId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await authService.increaseQuantity(plantId);
+      await fetchCartItems();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  double get totalAmount {
-    var total = 0.0;
-    _items.forEach((key, cartItem) {
-      total += cartItem.plant.price * cartItem.quantity;
-    });
-    return total;
+  Future<void> decreaseQuantity(int plantId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await authService.decreaseQuantity(plantId);
+      await fetchCartItems();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  double getTotalAmount() {
+    return _cartItems.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
   }
 }

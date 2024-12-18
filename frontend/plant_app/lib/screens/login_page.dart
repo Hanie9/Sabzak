@@ -5,6 +5,8 @@ import 'package:plant_app/api/api_service.dart';
 import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/sign_up.dart';
 import 'package:plant_app/providers/login_provider.dart';
+import 'package:plant_app/screens/admin_page.dart';
+// import 'package:plant_app/screens/admin_page.dart';
 import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/screens/sign_up/sign_up_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
@@ -37,10 +39,17 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.containsKey('message')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const RootPage()),
-        );
+        if (provider.isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const RootPage()),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['error'] ?? 'Unknown error')),
@@ -69,67 +78,82 @@ class _LoginPageState extends State<LoginPage> {
           ),
           Positioned(
             top: 250.0,
-            left: 20.0,
-            child: SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: SizedBox(
-                width: size.width * 0.8,
-                height: size.height * 0.8,
+            left: 44.0,
+            child: SizedBox(
+              width: size.width * 0.8,
+              height: size.height * 0.8,
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
                 child: Form(
                   key: _formKey,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 30.0,),
-                        BuildCustomFormField(
-                          controller: _usernameController,
-                          labelName: 'نام کاربری',
-                          validator: CustomValidator.fieldMustComplete,
-                          formFieldtextDirection: TextDirection.ltr,
-                        ),
-                        const SizedBox(
-                          height: 30.0,
-                        ),
-                        BuildCustomFormField(
-                          controller: _passwordController,
-                          labelName: 'پسورد',
-                          validator: CustomValidator.passwordValidator,
-                          formFieldtextDirection: TextDirection.ltr,
-                        ),
-                        const SizedBox(
-                          height: 30.0,
-                        ),
-                        Row(
-                          children: [
-                            Consumer<LoginProvider>(
-                            builder: (context, provider, child) {
-                              return provider.isLoading
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 30.0,),
+                          BuildCustomFormField(
+                            controller: _usernameController,
+                            labelName: 'نام کاربری:',
+                            validator: CustomValidator.fieldMustComplete,
+                            formFieldtextDirection: TextDirection.ltr,
+                          ),
+                          const SizedBox(
+                            height: 10.0,
+                          ),
+                          BuildCustomFormField(
+                            controller: _passwordController,
+                            labelName: 'پسورد:',
+                            obscureText: true,
+                            validator: CustomValidator.passwordValidator,
+                            formFieldtextDirection: TextDirection.ltr,
+                          ),
+                          const SizedBox(
+                            height: 20.0,
+                          ),
+                          Column(
+                            children: [
+                              Consumer<LoginProvider>(
+                              builder: (context, provider, child) {
+                                return provider.isLoading
                                   ? const CircularProgressIndicator()
                                   : ElevatedButton(
                                       onPressed: _login,
-                                      child: const Text('Login'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Constant.primaryColor,
+                                        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
+                                      ),
+                                      child: const Text(
+                                        "ورود",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Yekan Bakh',
+                                          fontSize: 15.0,
+                                        ),
+                                      ),
                                     );
-                            },
+                                },
+                              ),
+                              const SizedBox(
+                                width: 20.0,
+                              ),
+                              _buildNeedRegisterButton(context),
+                            ],
                           ),
-                            const SizedBox(
-                              width: 20.0,
+                          const SizedBox(
+                            height: 30.0,
+                          ),
+                          isApiCalled ? const Text(
+                            'لطفا منتظر بمانید ...',
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              fontSize: 20.0,
+                              fontFamily: 'Yekan Bakh'
                             ),
-                            _buildNeedRegisterButton(context),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 30.0,
-                        ),
-                        isApiCalled ? const Text(
-                          'لطفا منتظر بمانید ...',
-                          textDirection: TextDirection.rtl,
-                          style: TextStyle(
-                            fontSize: 20.0,
-                            fontFamily: 'Yekan Bakh'
-                          ),
-                        ) : const Text(''),
-                      ],
+                          ) : const Text(''),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -153,14 +177,18 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: Constant.primaryColor,
+        side: BorderSide(width: 2, color: Constant.primaryColor),
+        overlayColor: Constant.primaryColor,
+        backgroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
       ),
-      child: const Text(
-        "اکانت نداری؟",
+      child: Text(
+        "ثبت نام نکردی؟",
         style: TextStyle(
+          color: Constant.primaryColor,
           fontFamily: 'Yekan Bakh',
           fontSize: 15.0,
+          fontWeight: FontWeight.w700
         ),
       ),
     );

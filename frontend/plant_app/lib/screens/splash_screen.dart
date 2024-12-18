@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:plant_app/const/constants.dart';
-import 'package:plant_app/screens/root.dart';
+import 'package:plant_app/screens/login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class OnboardingPages extends StatefulWidget {
+  const OnboardingPages({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<OnboardingPages> createState() => _OnboardingPagesState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _OnboardingPagesState extends State<OnboardingPages> {
 
   final PageController _pageController = PageController(initialPage: 0);
   int currentindex = 0;
+
+  void _completeOnboarding(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', true);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
 
   Widget _indicator(bool isActive){
     return AnimatedContainer(
@@ -101,7 +111,8 @@ class _HomePageState extends State<HomePage> {
                         _pageController.nextPage(duration: const Duration(microseconds: 100), curve: Curves.easeIn);
                       }
                     } else {
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const RootPage()));
+                      _completeOnboarding(context);
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                     }
                   });
                 },

@@ -1,5 +1,5 @@
 import time
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from database import Database
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
@@ -10,15 +10,6 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from models import *
-
-print(
-    os.getenv("POSTGRES_USER"),
-    os.getenv("POSTGRES_PASSWORD"),
-    os.getenv("POSTGRES_HOST"),
-    os.getenv("POSTGRES_PORT"),
-    os.getenv("POSTGRES_DB"),
-    flush=True
-)
 
 db = Database(
     os.getenv("POSTGRES_USER"),
@@ -35,7 +26,6 @@ async def lifespan(app: FastAPI):
     await db.dispose()
 
 app = FastAPI(lifespan=lifespan)
-cart = Cart()
 
 app.mount("/images", StaticFiles(directory="images"), name="images")
 
@@ -46,8 +36,11 @@ def get_images():
     image_urls = [f"http://45.156.23.34:8000/images/{image}" for image in image_files]
     return JSONResponse(content={"images": image_urls})
 
-@app.post("/plants")
-async def create_plant(plant: Plant):
+@app.post("/plants/add")
+async def create_plant(request: Request, plant: Plant):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
     await db.create_plant(plant)
     return {"message": "Plant posted successfully"}
 
@@ -64,12 +57,18 @@ async def get_plant(plant_id: int):
     return plant
 
 @app.patch("/plants/{plant_id}")
-async def update_plant_price(plant_id: int, updated_price: int):
+async def update_plant_price(request: Request, plant_id: int, updated_price: int):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
     await db.update_plant_price(plant_id, updated_price)
     return {"message": "Price updated successfully"}
 
 @app.delete("/plants/{plant_id}")
-async def delete_plant(plant_id: int):
+async def delete_plant(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
     await db.delete_plant(plant_id)
     return {"message": "Plant deleted successfully"}
 
@@ -91,27 +90,52 @@ async def login_user(user: Login):
         return {"error": f"Wrong {"email" if user.email else "username"} or password has been given."}
     session_id = create_session()
     await db.add_new_session(userid, session_id)
-    return {"message": "Logged in successfully", "sessionid": session_id}
+    return {"message": "Logged in successfully", "session_id": session_id}
 
-@app.post("/cart/add")
-def add_to_cart(plant: Plant, quantity: int = 1):
-    for item in cart.items:
-        if item.plant.plantId == plant.plantId:
-            item.quantity += quantity
-            return {"message": "Added to cart", "cart": cart}
-    cart.items.append(CartItem(plant=plant, quantity=quantity))
-    return {"message": "Added to cart", "cart": cart}
+@app.get("/users")
+async def get_users(request: Request):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    users = await db.get_users()
+    return users
 
-@app.delete("/cart/remove/{plant_id}")
-def remove_from_cart(plant_id: int):
-    cart.items = [item for item in cart.items if item.plant.plantId != plant_id]
-    return {"message": "Removed from cart", "cart": cart}
+@app.post("/cart/add/{plant_id}")
+async def add_to_cart(request: Request, plant_id):
+    session_id = request.headers.get("session_id")
+    await db.add_to_cart(session_id, plant_id)
+    return {"message": "Plant added to cart successfully"}
+
+@app.delete("/cart/delete/{plant_id}")
+async def delete_cart_item(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    await db.delete_cart_item(session_id, plant_id)
+    return {"message": "Plant deleted successfully"}
 
 @app.get("/cart")
-def get_cart():
-    return {"cart": cart}
+async def get_cart_items(request: Request):
+    session_id = request.headers.get("session_id")
+    cart_items = await db.get_cart_items(session_id)
+    return cart_items
 
-@app.post("/cart/clear")
-def clear_cart():
-    cart.items = []
-    return {"message": "Cart cleared", "cart": cart}
+@app.delete("/cart/clear")
+async def clear_cart_items(request: Request):
+    session_id = request.headers.get("session_id")
+    await db.clear_cart_items(session_id)
+    return {"message": "Cart cleared successfully"}
+
+@app.post("/cart/increase_quantity")
+async def increase_quantity_to_cart_item(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    await db.increase_quantity_to_cart_item(session_id, plant_id)
+    return {"message": "item's quantity increased successfully"}
+
+@app.post("/cart/decrease_quantity")
+async def decrease_quantity_from_cart_item(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    await db.decrease_quantity_from_cart_item(session_id, plant_id)
+    return {"message": "item's quantity decreased successfully"}
+
+@app.get("/is_admin/{session_id}")
+async def is_admin(session_id: str):
+    return await db.check_user_is_admin(session_id)
