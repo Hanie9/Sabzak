@@ -5,12 +5,31 @@ class Plant(BaseModel):
     plantName: str
     price: int
     size: str
-    rating: float
     humidity: int
     temperature: str
     category: str
     isfavorite: bool
     description: Optional[str] = None
+
+class Categories(BaseModel):
+    name: str
+
+class Address(BaseModel):
+    reciever_first_name: str
+    reciever_last_name: str
+    street: str
+    city: str
+    neighborhood: Optional[str] = None
+    houseNumber: str
+    alley: Optional[str] = None
+    zipCode: str
+    vahed: Optional[str] = None
+
+
+class Rating(BaseModel):
+    plant_id: int
+    rating: float
+    reaction: str
 
 
 class SignUp(BaseModel):
@@ -19,6 +38,10 @@ class SignUp(BaseModel):
     password: str
     username: str
     email: str
+
+class Notification(BaseModel):
+    notification_title: str
+    notification: str
     
 
 class Login(BaseModel):

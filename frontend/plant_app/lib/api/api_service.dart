@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:plant_app/models/cart_model.dart';
 import 'package:plant_app/models/plant.dart';
+import 'package:plant_app/models/rating.dart';
 import 'package:plant_app/models/users_model.dart';
+import 'package:plant_app/screens/zarinpal/zarinpal_request_model.dart';
+import 'package:plant_app/screens/zarinpal/zarinpal_verify_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -34,9 +38,9 @@ class ApiService {
     }
   }
 
-  Future<List<Plant>> fetchPlants() async {
+  Future<List<Plant>> fetchPlants({String query = '', String category = ''}) async {
     try {
-      final response = await _dio.get('/plants');
+      final response = await _dio.get('/plants_new', queryParameters: {'query': query, 'category': category});
       if (response.statusCode == 200) {
         final List<dynamic> responseData = response.data;
         return responseData.map((data) => Plant.fromJson(data)).toList();
@@ -45,6 +49,38 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Error fetching plants: $e');
+    }
+  }
+
+  Future<List<Category>> fetchCategories() async {
+    try {
+      final response = await _dio.get('/categories');
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = response.data;
+        return responseData.map((data) => Category.fromJson(data)).toList();
+      } else {
+        throw Exception('Failed to load categories');
+      }
+    } catch (e) {
+      throw Exception('Error fetching categories: $e');
+    }
+  }
+
+  Future<void> deletePlant(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      await _dio.delete(
+        '/plants/$id',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      fetchPlants();
+    } catch (e) {
+      throw Exception('Error deleting plant: $e');
     }
   }
 
@@ -111,6 +147,51 @@ class ApiService {
     }
   }
 
+  Future<Users> fetchUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final response = await _dio.get(
+        '/user',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = response.data;
+        return Users.fromJson(responseData);
+      } else {
+        throw Exception('Failed to load user profile');
+      }
+    } catch (e) {
+      throw Exception('Error fetching user profile: $e');
+    }
+  }
+
+  Future<String> fetchProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get(
+        '/profile',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to load profile');
+      }
+    } catch (e) {
+      throw Exception('Error fetching profile: $e');
+    }
+  }
+
   Future<bool> isAdmin(String sessionId) async {
     try {
       final response = await _dio.get('/is_admin/$sessionId');
@@ -127,6 +208,11 @@ class ApiService {
   Future<void> saveSessionId(String sessionId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('session_id', sessionId);
+  }
+
+  Future<void> clearSessionId(String sessionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(sessionId);
   }
 
   Future<String?> getSessionId() async {
@@ -234,6 +320,170 @@ class ApiService {
       );
     } catch (e) {
       throw Exception('Error decreasing quantity: $e');
+    }
+  }
+
+   Future<ZarinpalRequest?> getAuthority(String amount)  async {
+    // String amountToRial = '${amount}0';
+    ZarinpalRequest? zarinpalRequestModel;
+
+    try {
+      String url = '';
+      // ${zarinpalInfo.zarinpalRequestURL}?merchant_id=${zarinpalInfo.zarinpalMerchID}&amount=$amountToRial&description=پرداخت از طریق اپلیکیشن فلاتر&callback_url=${zarinpalInfo.zarinpalCallURL}
+      Response response = await Dio().post(
+        url,
+        options: Options(
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+          }
+        )
+      );
+      if(response.statusCode == 200){
+        zarinpalRequestModel = ZarinpalRequest.fromJson(response.data);
+      }
+
+    } on DioException catch (e) {
+      throw 'Error $e';
+    }
+    return zarinpalRequestModel;
+  }
+
+  Future<ZarinpalVerify?> verifyPayment(int? amount, String authority) async {
+    // String amountToRial = '${amount}0';
+    ZarinpalVerify? zarinpalVerifyModel;
+
+    try {
+      String url = '';
+      // ${zarinpalInfo.zarinpalVerifyURL}?merchant_id=${zarinpalInfo.zarinpalMerchID}&amount=$amountToRial$authority=$authority
+      Response response = await Dio().post(
+        url,
+        options: Options(
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+          }
+        )
+      );
+      if(response.statusCode == 200){
+        zarinpalVerifyModel = ZarinpalVerify.fromJson(response.data);
+      }
+    } catch (e){
+      if(e is DioException){
+        if(e.response?.data == null){
+          return ZarinpalVerify(errors: 'هیچ داده ای دریافت نشد');
+        }
+        return ZarinpalVerify.fromJson(e.response?.data);
+      } else {
+        return ZarinpalVerify(errors: e.toString());
+      }
+    }
+    return zarinpalVerifyModel;
+  }
+
+  Future<void> ratePlant(Rating rating) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.post(
+        '/rate_plant',
+        options: Options(headers: {'session_id': sessionId}),
+        data: {
+          'rating': rating.rating,
+          'plant_id': rating.plantId,
+          'reaction': rating.reaction,
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to submit rating');
+      }
+    } on DioException catch (e) {
+      throw Exception('Failed to submit rating: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getRatings(int plantId) async {
+    try {
+      final response = await _dio.get('/ratings/$plantId');
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to load ratings');
+      }
+    } on DioException catch (e) {
+      throw Exception('Failed to load ratings: $e');
+    }
+  }
+
+  Future<String> getUsersUsername() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get(
+        '/users_username',
+        options: Options(headers: {'session_id': sessionId}),
+      );
+      if (response.statusCode == 200) {
+        return response.data['username'];
+      } else {
+        throw Exception('Failed to load username');
+      }
+    } on DioException catch (e) {
+      throw Exception('Failed to load username: $e');
+    }
+  }
+
+  Future<Map<String, String>?> fetchAddress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get('/checkout', options: Options(headers: {"session_id": sessionId}));
+      if (response.statusCode == 200) {
+        return response.data.cast<String, String>();
+      } else {
+        throw Exception('Failed to fetch address');
+      }
+    } catch (e) {
+      throw Exception('Error fetching address: ${e.toString()}');
+    }
+  }
+
+  Future<void> addNotification(String notification, String notificationTitle) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      await _dio.post(
+        '/notification',
+        data: {
+          'notification': notification,
+          'notification_title': notificationTitle
+        },
+        options: Options(headers: {'session_id': sessionId}),
+      );
+    } catch (e) {
+      throw Exception('Failed to add notification: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    try {
+      final response = await _dio.get('/get_notifications');
+      final List<Map<String, dynamic>> notifications = List<Map<String, dynamic>>.from(response.data);
+      return notifications;
+    } catch (e) {
+      throw Exception('Failed to load notifications: $e');
+    }
+  }
+
+  Future<void> deleteNotification(int notificationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      await _dio.delete(
+        '/delete_notification',
+        options: Options(headers: {'session_id': sessionId}),
+        queryParameters: {'notification_id': notificationId},
+      );
+    } catch (e) {
+      throw Exception('Failed to delete notification: $e');
     }
   }
 

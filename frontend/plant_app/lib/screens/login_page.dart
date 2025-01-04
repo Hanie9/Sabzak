@@ -11,6 +11,7 @@ import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/screens/sign_up/sign_up_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/build_custom_formfield.dart';
+import 'package:plant_app/widgets/build_custom_formfield_star.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -28,7 +29,6 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
@@ -104,6 +104,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           BuildCustomFormField(
                             controller: _passwordController,
+                            maxlines: 1,
                             labelName: 'پسورد:',
                             obscureText: true,
                             validator: CustomValidator.passwordValidator,

@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/plant.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/build_custom_formfield.dart';
+import 'package:plant_app/widgets/build_custom_formfield_star.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddPlantsScreen extends StatefulWidget {
@@ -16,6 +19,8 @@ class AddPlantsScreen extends StatefulWidget {
 class _AddPlantsScreenState extends State<AddPlantsScreen> {
 
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   final _formKey = GlobalKey<FormState>();
   final _plantNameController = TextEditingController();
@@ -25,7 +30,6 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
   final _temperatureController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _sizeController = TextEditingController();
-  final _ratingController = TextEditingController();
 
    @override
   void dispose() {
@@ -36,14 +40,55 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
     _temperatureController.dispose();
     _descriptionController.dispose();
     _sizeController.dispose();
-    _ratingController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _uploadPhoto(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          _selectedImage!.path,
+          filename: '$plantId.png',
+        ),
+      });
+
+      final response = await _dio.post(
+        '/images/upload_photo/$plantId',
+        data: formData,
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+          contentType: 'application/json',
+        ),
+      );
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo uploaded successfully!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload photo')),
+      );
+    }
   }
 
   Future<void> submitPlant() async {
     final prefs = await SharedPreferences.getInstance();
     final sessionId = prefs.getString('session_id');
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() && _selectedImage != null) {
       final plant = Plant(
         plantName: _plantNameController.text,
         price: int.parse(_priceController.text),
@@ -52,7 +97,6 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
         temperature: _temperatureController.text,
         description: _descriptionController.text,
         size: _sizeController.text,
-        rating: double.parse(_ratingController.text),
         isFavorated: false,
       );
       try {
@@ -65,19 +109,13 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
         );
         final responseData = response.data;
         if (responseData != null && responseData['plantid'] != null) {
-          final addedPlant = Plant.fromJson({
-            ...plant.toJson(),
-            'plantid': responseData['plantid'],
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Plant added successfully with ID: ${addedPlant.plantId}')),
-          );
+          final plantId = responseData['plantid'];
+          await _uploadPhoto(plantId);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('گیاه با موفقیت اضافه شد')),
           );
         }
-        
         _clearForm();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +134,9 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
     _temperatureController.clear();
     _descriptionController.clear();
     _sizeController.clear();
-    _ratingController.clear();
+    setState(() {
+      _selectedImage = null;
+    });
   }
 
   @override
@@ -171,12 +211,12 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
                       labelName: "اندازه:",
                       validator: CustomValidator.fieldMustComplete,
                     ),
-                    const SizedBox(height: 5),
-                    BuildCustomFormField(
-                      controller: _ratingController,
-                      keyboardType: TextInputType.number,
-                      labelName: "میزان علاقه‌مندی:",
-                      validator: CustomValidator.fieldMustComplete,
+                    const SizedBox(height: 15),
+                    _selectedImage != null
+                    ? Image.file(_selectedImage!)
+                    : GestureDetector(
+                      onTap: _pickImage,
+                      child: Image.asset("assets/images/add_plant.png"),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(

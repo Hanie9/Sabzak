@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:plant_app/const/constants.dart';
-import 'package:plant_app/widgets/extensions.dart';
 
 class BuildCustomFormField extends StatelessWidget {
   final TextEditingController controller;
@@ -74,34 +73,5 @@ class BuildCustomFormField extends StatelessWidget {
         validator: validator,
       ),
     );
-  }
-}
-
-
-class CustomValidator {
-  static String? fieldMustComplete(String? value) {
-    if (value.toString().isEmpty) {
-      return 'این فیلد باید تکمیل شود';
-    }
-    return null;
-  }
-
-  static String? passwordValidator(String? value) {
-    if (value.toString().isEmpty) {
-      return 'این فیلد باید تکمیل شود';
-    } else if (!value!.isValidPassword) {
-      // NABEGHEHA.COM
-      return 'پسورد قوی نمی باشد';
-    }
-    return null;
-  }
-
-  static String? emailValidator(String? value) {
-    if (value.toString().isEmpty) {
-      return 'این فیلد باید تکمیل شود';
-    } else if (!value!.isValidEmail) {
-      return 'فرمت ایمیل صحیح نیست';
-    }
-    return null;
   }
 }

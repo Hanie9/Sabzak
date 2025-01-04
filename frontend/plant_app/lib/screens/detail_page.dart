@@ -1,4 +1,5 @@
 import 'dart:ui';
+// import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:page_transition/page_transition.dart';
@@ -7,12 +8,13 @@ import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/plant.dart';
 import 'package:plant_app/providers/cart_provider.dart';
 import 'package:plant_app/screens/cart_page.dart';
+import 'package:plant_app/screens/plant_rating_page.dart';
 import 'package:plant_app/widgets/extensions.dart';
 import 'package:provider/provider.dart';
 
 class DetailPage extends StatefulWidget {
-  final int plantId;
-  const DetailPage({super.key, required this.plantId});
+  final Plant plant;
+  const DetailPage({super.key, required this.plant});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -23,12 +25,36 @@ class _DetailPageState extends State<DetailPage> {
   bool toggleisselected(bool isSelected){
     return !isSelected;
   }
+
   bool kharid = false;
+  // int _rating = 0;
+  double _averageRating = 0.0;
+
+  Future<void> _fetchAverageRating() async {
+    try {
+      final response = await ApiService().getRatings(widget.plant.plantId!);
+        setState(() {
+          _averageRating = response['average_rating'];
+        });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to fetch average rating')),
+      );
+    }
+  }
 
   @override
   void initState() {
     Provider.of<CartProvider>(context, listen: false).fetchCartItems();
+    _fetchAverageRating();
     super.initState();
+  }
+
+  Future<void> _refreshbadge()async{
+    setState(() {
+      Provider.of<CartProvider>(context, listen: false).fetchCartItems();
+      _fetchAverageRating();
+    });
   }
 
   // loadBooleanValue() async {
@@ -65,7 +91,6 @@ class _DetailPageState extends State<DetailPage> {
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(child: Text('هیچ گیاهی وجود ندارد :('));
             } else {
-              final plant = snapshot.data!;
               return RefreshIndicator(
                 onRefresh: () async {
                   Provider.of<CartProvider>(context, listen: false).fetchCartItems();
@@ -108,7 +133,7 @@ class _DetailPageState extends State<DetailPage> {
                                 color: Constant.primaryColor.withOpacity(0.15),
                               ),
                               child: Icon(
-                                plant[widget.plantId].isFavorated ? Icons.favorite : Icons.favorite_border,
+                                widget.plant.isFavorated ? Icons.favorite : Icons.favorite_border,
                                 color: Constant.primaryColor,
                               ),
                             ),
@@ -132,7 +157,7 @@ class _DetailPageState extends State<DetailPage> {
                                 child: SizedBox(
                                   height: 350.0,
                                   child: FutureBuilder<String>(
-                                    future: apiService.fetchPlantImage(widget.plantId),
+                                    future: apiService.fetchPlantImage(widget.plant.plantId!),
                                     builder: (context, imageSnapshot) {
                                       if (imageSnapshot.connectionState == ConnectionState.waiting) {
                                         return LoadingAnimationWidget.staggeredDotsWave(
@@ -167,15 +192,15 @@ class _DetailPageState extends State<DetailPage> {
                                                 children: [
                                                   PlantFeature(
                                                     title: 'اندازه گیاه',
-                                                    plantFeature: plant[widget.plantId].size,
+                                                    plantFeature: widget.plant.size,
                                                   ),
                                                   PlantFeature(
                                                     title: 'رطوبت‌هوا',
-                                                    plantFeature: plant[widget.plantId].humidity.toString(),
+                                                    plantFeature: widget.plant.humidity.toString(),
                                                   ),
                                                   PlantFeature(
                                                     title: 'دمای‌نگه‌داری',
-                                                    plantFeature: plant[widget.plantId].temperature,
+                                                    plantFeature: widget.plant.temperature,
                                                   ),
                                                 ],
                                               ),
@@ -196,7 +221,7 @@ class _DetailPageState extends State<DetailPage> {
                         left: 0.0,
                         right: 0.0,
                         child: Container(
-                          padding: const EdgeInsets.only(top: 80.0, right: 30.0, left: 30.0),
+                          padding: const EdgeInsets.only(top: 80.0, right: 30.0, left: 20.0),
                           height: size.height * (0.5),
                           width: size.width,
                           decoration: const BoxDecoration(
@@ -210,29 +235,66 @@ class _DetailPageState extends State<DetailPage> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       Icon(
                                         Icons.star,
-                                        size: 30.0,
                                         color: Constant.primaryColor,
                                       ),
+                                      const SizedBox(
+                                        width: 1.0,
+                                      ),
                                       Text(
-                                        plant[widget.plantId].rating.toString().farsiNumber,
-                                        textDirection: TextDirection.rtl,
-                                        style: TextStyle(
-                                          fontFamily: 'Lalezar',
+                                        _averageRating.toString(),
+                                         style: TextStyle(
                                           color: Constant.primaryColor,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 23.0,
+                                          fontSize: 18.0,
+                                          fontFamily: "iransans",
+                                          fontWeight: FontWeight.bold
                                         ),
                                       ),
-                                    ],
+                                      const SizedBox(
+                                        width: 10.0,
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          Navigator.push(context, PageTransition(
+                                            child: PlantRatingPage(plant: widget.plant,),
+                                            type: PageTransitionType.bottomToTop,
+                                            ),
+                                          );
+                                        },
+                                        icon: ImageIcon(
+                                          const AssetImage("assets/images/chat3.png"),
+                                          size: 25.0,
+                                          color: Constant.primaryColor,
+                                        )
+                                      ),
+                                      const SizedBox(
+                                        width: 5.0,
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          Navigator.push(context, PageTransition(
+                                            child: PlantRatingPage(plant: widget.plant,),
+                                            type: PageTransitionType.bottomToTop,
+                                            ),
+                                          );
+                                        },
+                                        icon: ImageIcon(
+                                          const AssetImage("assets/images/alarm.png"),
+                                          size: 25.0,
+                                          color: Constant.primaryColor,
+                                        )
+                                      ),
+                                    ]
                                   ),
                                   Column(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        plant[widget.plantId].plantName,
+                                        widget.plant.plantName,
                                         textDirection: TextDirection.rtl,
                                         style: TextStyle(
                                           fontFamily: 'Yekan Bakh',
@@ -254,7 +316,7 @@ class _DetailPageState extends State<DetailPage> {
                                             width: 10.0,
                                           ),
                                           Text(
-                                            plant[widget.plantId].price.toString().farsiNumber,
+                                            widget.plant.price.toString().farsiNumber,
                                             textDirection: TextDirection.rtl,
                                             style: TextStyle(
                                               fontFamily: 'Lalezar',
@@ -274,7 +336,7 @@ class _DetailPageState extends State<DetailPage> {
                               ),
                               SingleChildScrollView(
                                 child: Text(
-                                  plant[widget.plantId].description!,
+                                  widget.plant.description!,
                                   textDirection: TextDirection.rtl,
                                   textAlign: TextAlign.justify,
                                   style: const TextStyle(
@@ -298,7 +360,7 @@ class _DetailPageState extends State<DetailPage> {
                       children: [
                         GestureDetector(
                           onTap: () {
-                            cartProvider.fetchCartItems();
+                            _refreshbadge();
                             Navigator.push(context, PageTransition(
                               child: const CartPage(),
                               type: PageTransitionType.bottomToTop,
@@ -359,7 +421,8 @@ class _DetailPageState extends State<DetailPage> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                    cartProvider.addToCart(widget.plantId + 1);
+                                    cartProvider.addToCart(widget.plant.plantId!);
+                                    _refreshbadge();
                                 });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -370,7 +433,7 @@ class _DetailPageState extends State<DetailPage> {
                                         behavior: SnackBarBehavior.fixed,
                                         content: Center(
                                           child: Text(
-                                            'گیاه ${plant[widget.plantId].plantName} با موفقیت به سبد‌خرید اضافه شد',
+                                            'گیاه ${widget.plant.plantName} با موفقیت به سبد‌خرید اضافه شد',
                                             style: const TextStyle(
                                               fontSize: 16.0,
                                               fontFamily: 'iransans',
@@ -492,3 +555,21 @@ class PlantFeature extends StatelessWidget {
     );
   }
 }
+
+// List.generate(5,(index){
+//   return IconButton(
+//     onPressed: () {
+//       setState(() {
+//         _rating = index + 1;
+//       });
+//       _submitRating(_rating);
+//     },
+//     padding: EdgeInsets.zero,
+//     constraints: const BoxConstraints(),
+//     icon: Icon(
+//       index < _rating ? Icons.star : Icons.star_border,
+//       size: 24.0,
+//     ),
+//     color: Constant.primaryColor,
+//   );
+// })

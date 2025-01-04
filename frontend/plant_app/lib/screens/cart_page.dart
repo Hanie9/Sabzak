@@ -85,7 +85,7 @@ class _CartPageState extends State<CartPage> {
                       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                       child: ListTile(
                         leading: FutureBuilder<String>(
-                          future: apiService.fetchPlantImage(cartItem.plantId-1),
+                          future: apiService.fetchPlantImage(cartItem.plantId),
                           builder: (context, imageSnapshot) {
                             if (imageSnapshot.connectionState == ConnectionState.waiting) {
                               return const CircularProgressIndicator();
@@ -163,8 +163,9 @@ class _CartPageState extends State<CartPage> {
                               numberformat.format(cartProvider.getTotalAmount()),
                               style: TextStyle(
                                 color: Constant.primaryColor,
-                                fontSize: 25.0,
-                                fontWeight: FontWeight.bold
+                                fontSize: 23.0,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Yekan Bakh',
                               ),
                             ),
                           ],
@@ -217,7 +218,7 @@ class _CartPageState extends State<CartPage> {
                                 Navigator.of(context).push(
                                   CupertinoPageRoute(
                                     builder: (context) {
-                                      return const VerifyAddress();
+                                      return const AddressVerificationPage();
                                     },
                                   )
                                 );

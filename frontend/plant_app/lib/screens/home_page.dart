@@ -6,7 +6,7 @@ import 'package:plant_app/api/api_service.dart';
 import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/plant.dart';
 import 'package:plant_app/providers/cart_provider.dart';
-import 'package:plant_app/providers/shop_provider.dart';
+import 'package:plant_app/providers/plant_provider.dart';
 import 'package:plant_app/screens/detail_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/extensions.dart';
@@ -23,7 +23,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
 
-  int selectedindex = 0;
+  String _selectedCategory = '';
 
   bool toggleIsFavorite(bool isFavorite){
     return !isFavorite;
@@ -31,12 +31,44 @@ class _HomePageState extends State<HomePage> {
 
   final ApiService apiService = ApiService();
   late Future<List<Plant>> futurePlants;
+  late Future<List<Plant>> futureNewPlants;
   late Future<List<String>> futureImages;
+  late Future<List<Category>> categories;
+  final TextEditingController _searchController = TextEditingController();
+
+  Future<void> _fetchPlants({String query = '', String category = ''}) async {
+    try {
+      final plants = apiService.fetchPlants(query: query, category: category);
+      setState(() {
+        futurePlants = plants;
+        _selectedCategory = category;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      categories = apiService.fetchCategories();
+      setState(() {
+        categories = categories;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     futurePlants = apiService.fetchPlants();
+    futureNewPlants = apiService.fetchPlants();
+    _fetchCategories();
     futureImages = apiService.fetchImages();
   }
 
@@ -53,7 +85,7 @@ class _HomePageState extends State<HomePage> {
       } else if (snapshot.hasError) {
         return Center(child: Text('Error: ${snapshot.error}'));
       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-        return const Center(child: Text('هیچ گیاهی وجود ندارد'));
+        return const Center(child: Text('گیاهی وجود ندارد :('));
       } else {
         return ListView.builder(
           physics: const BouncingScrollPhysics(),
@@ -97,12 +129,12 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     Positioned(
-                      top: 50.0,
+                      top: 20.0,
                       right: 50.0,
                       bottom: 50.0,
-                      left: 50.0,
+                      left: 40.0,
                       child: FutureBuilder<String>(
-                        future: apiService.fetchPlantImage((plant.plantId!) - 1),
+                        future: apiService.fetchPlantImage((plant.plantId!)),
                         builder: (context, imageSnapshot) {
                           if (imageSnapshot.connectionState == ConnectionState.waiting) {
                             return LoadingAnimationWidget.staggeredDotsWave(
@@ -112,13 +144,22 @@ class _HomePageState extends State<HomePage> {
                           } else if (imageSnapshot.hasError) {
                             return const Icon(Icons.error);
                           } else {
-                            return Image.network(imageSnapshot.data!);
+                            return Container(
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: NetworkImage(
+                                    imageSnapshot.data!,
+                                  ),
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            );
                           }
                         },
                       ),
                     ),
                     Positioned(
-                      bottom: 15.0,
+                      bottom: 10.0,
                       left: 10.0,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
@@ -140,8 +181,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     Positioned(
-                      bottom: 15.0,
-                      right: 15.0,
+                      bottom: 30.0,
+                      right: 5.0,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -178,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                     builder: (BuildContext context) {
                       CartProvider().fetchCartItems();
                       CartProvider().cartItems;
-                      return DetailPage(plantId: (plant.plantId!) - 1);
+                      return DetailPage(plant: plant,);
                     },
                   )
                 );
@@ -198,14 +239,6 @@ class _HomePageState extends State<HomePage> {
     Size size = MediaQuery.of(context).size;
     final plantProvider = Provider.of<PlantProvider>(context);
     intl.NumberFormat numberformat = intl.NumberFormat.decimalPattern('fa');
-
-    final List<String> plantTypes = [
-    '| پیشنهادی |',
-    '| آپارتمانی |',    
-    '| محل‌کار |', 
-    '| گل باغچه ای |', 
-    '| گل سمی |', 
-  ];
 
     return Scaffold(
       appBar: AppBar(
@@ -232,23 +265,27 @@ class _HomePageState extends State<HomePage> {
                     ),
                     width: size.width * 0.9,
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: const Row(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.mic,
                         ),
                         Expanded(
                           child: Directionality(
                             textDirection: ui.TextDirection.rtl,
                             child: TextField(
+                              controller: _searchController,
                               textAlign: TextAlign.start,
-                              style: TextStyle(
+                              onChanged: (value) {
+                                _fetchPlants(query: value);
+                              },
+                              style: const TextStyle(
                                 fontSize: 14.0,
                               ),
                               showCursor: false,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                 contentPadding: EdgeInsets.only(right: 5.0),
                                 hintText: "جستجو",
                                 border: InputBorder.none,
@@ -260,8 +297,11 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-                        Icon(
-                          Icons.search,
+                        IconButton(
+                          icon: const Icon(Icons.search),
+                          onPressed: () {
+                            _fetchPlants(query: _searchController.text);
+                          },
                         ),
                       ],
                     ),
@@ -272,31 +312,49 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                 height: 70.0,
                 width: size.width,
-                child: ListView.builder(
-                  reverse: true,
-                  itemBuilder: (context, index){
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedindex = index;
-                          });
-                        },
-                        child: Text(
-                          plantTypes[index],
-                          style: TextStyle(
-                            fontFamily: 'Yekan Bakh',
-                            fontSize: 16.0,
-                            fontWeight: selectedindex == index ? FontWeight.bold : FontWeight.w300,
-                            color: selectedindex == index ? Constant.primaryColor : null,
-                          ),
-                        ),
-                      ),
-                    );
+                child: FutureBuilder<List<Category>>(
+                  future: categories,
+                  builder: (context, AsyncSnapshot snapshot){
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return LoadingAnimationWidget.staggeredDotsWave(
+                        size: 10.0,
+                        color: Constant.primaryColor
+                      );
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('هیچ گروهی وجود ندارد');
+                    } else {
+                      List<Category> categories = snapshot.data!;
+                      return ListView.builder(
+                        itemCount: categories.length,
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          final isSelected = category.name == _selectedCategory;
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _fetchPlants(category: categories[index].name);
+                                });
+                              },
+                              child: Text(
+                                "| ${category.name} |",
+                                style: TextStyle(
+                                  fontFamily: 'Yekan Bakh',
+                                  fontSize: 16.0,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w300,
+                                  color: isSelected ? Constant.primaryColor : null,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      );
+                    }
                   },
-                  itemCount: plantTypes.length,
-                  scrollDirection: Axis.horizontal,
                 ),
               ),
               // Product 1
@@ -309,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.only(right: 25.0, top: 20.0, bottom: 15.0),
                 alignment: Alignment.centerRight,
                 child: const Text(
-                  'گیاهان جدید',
+                  'تمام گیاهان',
                   style: TextStyle(
                     fontFamily: 'iransans',
                     fontSize: 18.0,
@@ -322,7 +380,7 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18.0),
                 height: size.height * (0.3),
                 child: FutureBuilder<List<Plant>>(
-                future: futurePlants,
+                future: futureNewPlants,
                 builder: (context, snapshot){
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: LoadingAnimationWidget.staggeredDotsWave(
@@ -332,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No plants available'));
+                    return const Center(child: Text('گیاهی وجود ندارد'));
                   } else {
                     return ListView.builder(
                       physics: const BouncingScrollPhysics(),

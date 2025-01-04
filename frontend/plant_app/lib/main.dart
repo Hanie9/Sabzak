@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:plant_app/providers/cart_provider.dart';
 import 'package:plant_app/providers/loader_provider.dart';
 import 'package:plant_app/providers/login_provider.dart';
-import 'package:plant_app/providers/shop_provider.dart';
+import 'package:plant_app/providers/plant_provider.dart';
 import 'package:plant_app/providers/signup_provider.dart';
 import 'package:plant_app/providers/users_provider.dart';
 import 'package:plant_app/screens/splash_screen.dart';

@@ -9,7 +9,7 @@ import 'package:plant_app/screens/login_page.dart';
 import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/screens/sign_up/custom_form_field.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
-import 'package:plant_app/widgets/build_custom_formfield.dart';
+import 'package:plant_app/widgets/build_custom_formfield_star.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
