@@ -9,6 +9,8 @@ import 'package:plant_app/widgets/build_custom_formfield.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EditPricePage extends StatefulWidget {
+  const EditPricePage({super.key});
+
   @override
   _EditPricePageState createState() => _EditPricePageState();
 }
@@ -31,17 +33,22 @@ class _EditPricePageState extends State<EditPricePage> {
     final sessionId = prefs.getString('session_id');
     if (_selectedPlant != null && _priceController.text.isNotEmpty) {
       try {
-        final response = await _dio.patch('/edit_price/${_selectedPlant!.plantId}?updated_price=${int.parse(_priceController.text)}', 
+        final response = await _dio.patch(
+          '/edit_price/${_selectedPlant!.plantId}?updated_price=${int.parse(_priceController.text)}',
           options: Options(headers: {'session_id': sessionId}),
         );
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('قیمت گیاه ${_selectedPlant!.plantName} به‌روزرسانی شد')),
+            SnackBar(
+                content: Text(
+                    'قیمت گیاه ${_selectedPlant!.plantName} به‌روزرسانی شد')),
           );
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("قیمت گیاه ${_selectedPlant!.plantName} به‌روزرسانی نشد")),
+          SnackBar(
+              content: Text(
+                  "قیمت گیاه ${_selectedPlant!.plantName} به‌روزرسانی نشد")),
         );
       }
     } else {
@@ -90,51 +97,67 @@ class _EditPricePageState extends State<EditPricePage> {
                                   _selectedPlant = newValue;
                                 });
                               },
-                              items: snapshot.data!.map<DropdownMenuItem<Plant>>((Plant plant) {
+                              items: snapshot.data!
+                                  .map<DropdownMenuItem<Plant>>((Plant plant) {
                                 return DropdownMenuItem<Plant>(
-                                  value: plant,
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          FutureBuilder<String>(
-                                            future: apiService.fetchPlantImage(plant.plantId!),
-                                            builder: (context, imageSnapshot) {
-                                              if (imageSnapshot.connectionState == ConnectionState.waiting) {
-                                                return LoadingAnimationWidget.staggeredDotsWave(
-                                                  size: 20.0,
-                                                  color: Constant.primaryColor
-                                                );
-                                              } else if (imageSnapshot.hasError) {
-                                                return const Icon(Icons.error);
-                                              } else {
-                                                return ClipRRect(
-                                                  borderRadius: BorderRadius.circular(10.0),
-                                                  child: Container(
-                                                    width: 40.0,
-                                                    height: 30.0,
-                                                    decoration: BoxDecoration(
-                                                      image: DecorationImage(
-                                                        image: NetworkImage(imageSnapshot.data!),
-                                                        fit: BoxFit.contain
+                                    value: plant,
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            FutureBuilder<String>(
+                                              future:
+                                                  apiService.fetchPlantImage(
+                                                      plant.plantId!),
+                                              builder:
+                                                  (context, imageSnapshot) {
+                                                if (imageSnapshot
+                                                        .connectionState ==
+                                                    ConnectionState.waiting) {
+                                                  return LoadingAnimationWidget
+                                                      .staggeredDotsWave(
+                                                          size: 20.0,
+                                                          color: Constant
+                                                              .primaryColor);
+                                                } else if (imageSnapshot
+                                                    .hasError) {
+                                                  return const Icon(
+                                                      Icons.error);
+                                                } else {
+                                                  return ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10.0),
+                                                    child: Container(
+                                                      width: 40.0,
+                                                      height: 30.0,
+                                                      decoration: BoxDecoration(
+                                                        image: DecorationImage(
+                                                            image: NetworkImage(
+                                                                imageSnapshot
+                                                                    .data!),
+                                                            fit:
+                                                                BoxFit.contain),
                                                       ),
                                                     ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                          const SizedBox(width: 10,),
-                                          Text(plant.plantName)
-                                        ],
-                                      ),
-                                      const Divider(
-                                        thickness: 1.0, color: Colors.grey,
-                                      ),
-                                    ],
-                                  )
-                                );
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Text(plant.plantName)
+                                          ],
+                                        ),
+                                        const Divider(
+                                          thickness: 1.0,
+                                          color: Colors.grey,
+                                        ),
+                                      ],
+                                    ));
                               }).toList(),
                             ),
                             BuildCustomFormField(
@@ -153,20 +176,19 @@ class _EditPricePageState extends State<EditPricePage> {
             const SizedBox(height: 20.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                side: BorderSide(width: 2, color: Constant.primaryColor),
-                overlayColor: Constant.primaryColor,
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
-            ),
+                  side: BorderSide(width: 2, color: Constant.primaryColor),
+                  overlayColor: Constant.primaryColor,
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 30.0, vertical: 10.0)),
               onPressed: _updatePrice,
               child: Text(
                 'به‌روزرسانی',
                 style: TextStyle(
-                  color: Constant.primaryColor,
-                  fontFamily: 'Yekan Bakh',
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w700
-                ),
+                    color: Constant.primaryColor,
+                    fontFamily: 'Yekan Bakh',
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w700),
               ),
             ),
           ],

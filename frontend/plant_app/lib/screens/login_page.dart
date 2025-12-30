@@ -9,6 +9,7 @@ import 'package:plant_app/screens/admin_page.dart';
 // import 'package:plant_app/screens/admin_page.dart';
 import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/screens/sign_up/sign_up_page.dart';
+import 'package:plant_app/screens/about_project_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/build_custom_formfield.dart';
 import 'package:plant_app/widgets/build_custom_formfield_star.dart';
@@ -71,6 +72,29 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: Stack(
         children: [
+          // About Us button in top-right corner
+          Positioned(
+            top: 10.0,
+            right: 10.0,
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AboutProjectPage(),
+                  ),
+                );
+              },
+              child: const Text(
+                'درباره ما',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontFamily: 'Yekan Bakh',
+                  fontSize: 16.0,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
           Positioned(
             left: 50.0,
             right: 0.0,

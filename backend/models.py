@@ -102,3 +102,15 @@ class OrderModel(BaseModel):
     orderDate: str
     shipping: Shipping
     billing: Billing
+
+class ChangePassword(BaseModel):
+    oldPassword: str
+    newPassword: str
+
+class CreateUserByAdmin(BaseModel):
+    firstName: str
+    lastName: str
+    password: str
+    username: str
+    email: str
+    isAdmin: bool = False

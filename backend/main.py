@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import aiofiles
 import os
+from pathlib import Path
 
 from models import *
 
@@ -253,3 +254,104 @@ async def delete_notification(request: Request, notification_id: int):
         return {"message": "Forbidden"}
     await db.delete_notification(notification_id)
     return {"message": "Notification deleted successfully"}
+
+@app.post("/database/backup")
+async def backup_database(request: Request):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    try:
+        backup_path = await db.backup_database()
+        backup_filename = os.path.basename(backup_path)
+        return FileResponse(
+            backup_path,
+            media_type='application/sql',
+            filename=backup_filename
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/database/restore")
+async def restore_database(request: Request, file: UploadFile = File(...)):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    
+    # Save uploaded file temporarily
+    restore_dir = "restore_temp"
+    os.makedirs(restore_dir, exist_ok=True)
+    temp_file_path = os.path.join(restore_dir, file.filename)
+    
+    try:
+        # Save uploaded file
+        async with aiofiles.open(temp_file_path, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+        
+        # Restore database
+        await db.restore_database(temp_file_path)
+        
+        # Clean up temp file
+        os.remove(temp_file_path)
+        
+        return {"message": "Database restored successfully"}
+    except Exception as e:
+        # Clean up temp file on error
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/change_password")
+async def change_password(request: Request, password_data: ChangePassword):
+    session_id = request.headers.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing session_id")
+    try:
+        await db.change_password(session_id, password_data.oldPassword, password_data.newPassword)
+        return {"message": "Password changed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/admin/create_user")
+async def create_user_by_admin(request: Request, user_data: CreateUserByAdmin):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    try:
+        await db.create_user_by_admin(user_data, user_data.isAdmin)
+        return {"message": "User created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/reports/sales")
+async def get_sales_report(request: Request, start_date: Optional[str] = Query(None), end_date: Optional[str] = Query(None)):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    try:
+        report = await db.get_sales_report(start_date, end_date)
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/reports/plant_sales")
+async def get_plant_sales_report(request: Request):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    try:
+        report = await db.get_plant_sales_report()
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/reports/user_activity")
+async def get_user_activity_report(request: Request):
+    session_id = request.headers.get("session_id")
+    if not await db.check_user_is_admin(session_id):
+        return {"message": "Forbidden"}
+    try:
+        report = await db.get_user_activity_report()
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

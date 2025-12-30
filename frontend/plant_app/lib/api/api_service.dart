@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:plant_app/models/cart_model.dart';
 import 'package:plant_app/models/plant.dart';
 import 'package:plant_app/models/rating.dart';
@@ -38,9 +39,11 @@ class ApiService {
     }
   }
 
-  Future<List<Plant>> fetchPlants({String query = '', String category = ''}) async {
+  Future<List<Plant>> fetchPlants(
+      {String query = '', String category = ''}) async {
     try {
-      final response = await _dio.get('/plants_new', queryParameters: {'query': query, 'category': category});
+      final response = await _dio.get('/plants_new',
+          queryParameters: {'query': query, 'category': category});
       if (response.statusCode == 200) {
         final List<dynamic> responseData = response.data;
         return responseData.map((data) => Plant.fromJson(data)).toList();
@@ -84,7 +87,8 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> signup(String username, String email, String password, String firstName, String lastName) async {
+  Future<Map<String, dynamic>> signup(String username, String email,
+      String password, String firstName, String lastName) async {
     try {
       final response = await _dio.post('/sign_up', data: {
         'username': username,
@@ -141,7 +145,9 @@ class ApiService {
           },
         ),
       );
-      return (response.data as List).map((user) => Users.fromJson(user)).toList();
+      return (response.data as List)
+          .map((user) => Users.fromJson(user))
+          .toList();
     } catch (e) {
       throw Exception('Error fetching users: $e');
     }
@@ -266,7 +272,9 @@ class ApiService {
           },
         ),
       );
-      return (response.data as List).map((item) => CartItem.fromJson(item)).toList();
+      return (response.data as List)
+          .map((item) => CartItem.fromJson(item))
+          .toList();
     } catch (e) {
       throw Exception('Error fetching cart items: $e');
     }
@@ -323,25 +331,20 @@ class ApiService {
     }
   }
 
-   Future<ZarinpalRequest?> getAuthority(String amount)  async {
+  Future<ZarinpalRequest?> getAuthority(String amount) async {
     // String amountToRial = '${amount}0';
     ZarinpalRequest? zarinpalRequestModel;
 
     try {
       String url = '';
       // ${zarinpalInfo.zarinpalRequestURL}?merchant_id=${zarinpalInfo.zarinpalMerchID}&amount=$amountToRial&description=پرداخت از طریق اپلیکیشن فلاتر&callback_url=${zarinpalInfo.zarinpalCallURL}
-      Response response = await Dio().post(
-        url,
-        options: Options(
-          headers: {
+      Response response = await Dio().post(url,
+          options: Options(headers: {
             HttpHeaders.contentTypeHeader: 'application/json',
-          }
-        )
-      );
-      if(response.statusCode == 200){
+          }));
+      if (response.statusCode == 200) {
         zarinpalRequestModel = ZarinpalRequest.fromJson(response.data);
       }
-
     } on DioException catch (e) {
       throw 'Error $e';
     }
@@ -355,20 +358,16 @@ class ApiService {
     try {
       String url = '';
       // ${zarinpalInfo.zarinpalVerifyURL}?merchant_id=${zarinpalInfo.zarinpalMerchID}&amount=$amountToRial$authority=$authority
-      Response response = await Dio().post(
-        url,
-        options: Options(
-          headers: {
+      Response response = await Dio().post(url,
+          options: Options(headers: {
             HttpHeaders.contentTypeHeader: 'application/json',
-          }
-        )
-      );
-      if(response.statusCode == 200){
+          }));
+      if (response.statusCode == 200) {
         zarinpalVerifyModel = ZarinpalVerify.fromJson(response.data);
       }
-    } catch (e){
-      if(e is DioException){
-        if(e.response?.data == null){
+    } catch (e) {
+      if (e is DioException) {
+        if (e.response?.data == null) {
           return ZarinpalVerify(errors: 'هیچ داده ای دریافت نشد');
         }
         return ZarinpalVerify.fromJson(e.response?.data);
@@ -435,7 +434,8 @@ class ApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final sessionId = prefs.getString('session_id');
-      final response = await _dio.get('/checkout', options: Options(headers: {"session_id": sessionId}));
+      final response = await _dio.get('/checkout',
+          options: Options(headers: {"session_id": sessionId}));
       if (response.statusCode == 200) {
         return response.data.cast<String, String>();
       } else {
@@ -446,7 +446,8 @@ class ApiService {
     }
   }
 
-  Future<void> addNotification(String notification, String notificationTitle) async {
+  Future<void> addNotification(
+      String notification, String notificationTitle) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final sessionId = prefs.getString('session_id');
@@ -466,7 +467,8 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getNotifications() async {
     try {
       final response = await _dio.get('/get_notifications');
-      final List<Map<String, dynamic>> notifications = List<Map<String, dynamic>>.from(response.data);
+      final List<Map<String, dynamic>> notifications =
+          List<Map<String, dynamic>>.from(response.data);
       return notifications;
     } catch (e) {
       throw Exception('Failed to load notifications: $e');
@@ -487,4 +489,157 @@ class ApiService {
     }
   }
 
+  Future<String> backupDatabase() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+
+      final response = await _dio.post(
+        '/database/backup',
+        options: Options(
+          headers: {'session_id': sessionId},
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      // Save file to downloads or documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${directory.path}/database_backup_$timestamp.sql';
+      final file = File(filePath);
+      await file.writeAsBytes(response.data);
+
+      return filePath;
+    } catch (e) {
+      throw Exception('Failed to backup database: $e');
+    }
+  }
+
+  Future<void> restoreDatabase(String filePath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+
+      final fileName = filePath.split('/').last;
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+        ),
+      });
+
+      await _dio.post(
+        '/database/restore',
+        data: formData,
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+      );
+    } catch (e) {
+      throw Exception('Failed to restore database: $e');
+    }
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      await _dio.post(
+        '/change_password',
+        data: {
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        },
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+      );
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
+  }
+
+  Future<void> createUserByAdmin({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String password,
+    required bool isAdmin,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      await _dio.post(
+        '/admin/create_user',
+        data: {
+          'firstName': firstName,
+          'lastName': lastName,
+          'username': username,
+          'email': email,
+          'password': password,
+          'isAdmin': isAdmin,
+        },
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+      );
+    } catch (e) {
+      throw Exception('Failed to create user: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSalesReport(
+      {String? startDate, String? endDate}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get(
+        '/reports/sales',
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+        },
+      );
+      return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      throw Exception('Failed to get sales report: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPlantSalesReport() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get(
+        '/reports/plant_sales',
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+      );
+      return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      throw Exception('Failed to get plant sales report: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserActivityReport() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final response = await _dio.get(
+        '/reports/user_activity',
+        options: Options(
+          headers: {'session_id': sessionId},
+        ),
+      );
+      return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      throw Exception('Failed to get user activity report: $e');
+    }
+  }
 }
