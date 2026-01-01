@@ -10,7 +10,7 @@ import 'package:plant_app/screens/zarinpal/zarinpal_verify_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
 
   Future<List<String>> fetchImages() async {
     try {
@@ -42,8 +42,15 @@ class ApiService {
   Future<List<Plant>> fetchPlants(
       {String query = '', String category = ''}) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
       final response = await _dio.get('/plants_new',
-          queryParameters: {'query': query, 'category': category});
+          queryParameters: {'query': query, 'category': category},
+          options: Options(
+            headers: {
+              if (sessionId != null) 'session_id': sessionId,
+            },
+          ));
       if (response.statusCode == 200) {
         final List<dynamic> responseData = response.data;
         return responseData.map((data) => Plant.fromJson(data)).toList();
@@ -637,9 +644,123 @@ class ApiService {
           headers: {'session_id': sessionId},
         ),
       );
-      return List<Map<String, dynamic>>.from(response.data);
+      final data = List<Map<String, dynamic>>.from(response.data);
+      // Debug: print first report to see structure
+      if (data.isNotEmpty) {
+        print('Sample report data: ${data[0]}');
+        print('orders_count type: ${data[0]['orders_count'].runtimeType}');
+        print('orders_count value: ${data[0]['orders_count']}');
+      }
+      return data;
     } catch (e) {
       throw Exception('Failed to get user activity report: $e');
+    }
+  }
+
+  Future<void> addToFavorites(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    if (sessionId == null || sessionId.isEmpty) {
+      throw Exception('Session ID is missing. Please login again.');
+    }
+    try {
+      await _dio.post(
+        '/favorites/add/$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      print('Error adding to favorites: $e');
+      print('Session ID: $sessionId, Plant ID: $plantId');
+      throw Exception('Error adding to favorites: $e');
+    }
+  }
+
+  Future<void> removeFromFavorites(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    if (sessionId == null || sessionId.isEmpty) {
+      throw Exception('Session ID is missing. Please login again.');
+    }
+    try {
+      await _dio.delete(
+        '/favorites/remove/$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      print('Error removing from favorites: $e');
+      print('Session ID: $sessionId, Plant ID: $plantId');
+      throw Exception('Error removing from favorites: $e');
+    }
+  }
+
+  Future<List<Plant>> getFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final response = await _dio.get(
+        '/favorites',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      final List<dynamic> responseData = response.data;
+      return responseData.map((data) => Plant.fromJson(data)).toList();
+    } catch (e) {
+      throw Exception('Error fetching favorites: $e');
+    }
+  }
+
+  Future<bool> checkIsFavorite(int plantId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    try {
+      final response = await _dio.get(
+        '/favorites/check/$plantId',
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+      return response.data['is_favorite'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> createOrder(
+      String trackingCode, List<Map<String, dynamic>> cartItems) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionId = prefs.getString('session_id');
+    if (sessionId == null || sessionId.isEmpty) {
+      throw Exception('Session ID is missing. Please login again.');
+    }
+    try {
+      await _dio.post(
+        '/orders/create',
+        data: {
+          'tracking_code': trackingCode,
+          'cart_items': cartItems,
+        },
+        options: Options(
+          headers: {
+            'session_id': sessionId,
+          },
+        ),
+      );
+    } catch (e) {
+      print('Error creating order: $e');
+      throw Exception('Error creating order: $e');
     }
   }
 }

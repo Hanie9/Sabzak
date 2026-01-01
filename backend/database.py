@@ -27,9 +27,18 @@ class Database:
             plant_id = await conn.fetchval(query, plant.plantName, plant.price, plant.category, plant.humidity, plant.temperature, plant.description, plant.size, plant.isfavorite)
             return plant_id
 
-    async def get_plants(self):
+    async def get_plants(self, user_id=None):
         async with self.pool.acquire() as conn:
-            return await conn.fetch("SELECT * FROM plants")
+            if user_id:
+                return await conn.fetch("""
+                    SELECT 
+                        p.*,
+                        CASE WHEN f.user_id IS NOT NULL THEN true ELSE false END as isfavorite
+                    FROM plants p
+                    LEFT JOIN favorites f ON p.plantid = f.plantid AND f.user_id = $1
+                """, user_id)
+            else:
+                return await conn.fetch("SELECT *, false as isfavorite FROM plants")
 
     async def get_plant(self, plant_id: int):
         async with self.pool.acquire() as conn:
@@ -75,7 +84,14 @@ class Database:
 
     async def get_userid_by_sessionid(self, session_id):
         async with self.pool.acquire() as conn:
-            return await conn.fetchval("SELECT userid from sessions WHERE sessionid = $1", session_id)
+            try:
+                user_id = await conn.fetchval("SELECT userid from sessions WHERE sessionid = $1", session_id)
+                if not user_id:
+                    print(f"Warning: No user found for session_id: {session_id}")
+                return user_id
+            except Exception as e:
+                print(f"Error in get_userid_by_sessionid: {e}")
+                raise
 
     async def add_new_session(self, userid, session_id):
         async with self.pool.acquire() as conn:
@@ -107,6 +123,62 @@ class Database:
         async with self.pool.acquire() as conn:
             user_id = await self.get_userid_by_sessionid(session_id)
             return await conn.execute("delete from cart_items where userid = $1", user_id)
+
+    async def create_order(self, session_id: str, tracking_code: str, cart_items: list):
+        """Create an order from cart items"""
+        async with self.pool.acquire() as conn:
+            user_id = await self.get_userid_by_sessionid(session_id)
+            if not user_id:
+                raise Exception("User not found")
+            
+            # Check if orders table exists
+            try:
+                table_exists = await conn.fetchval("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'orders'
+                    )
+                """)
+                if not table_exists:
+                    raise Exception("Orders table does not exist. Please run create_orders_table.sql first.")
+            except Exception as e:
+                print(f"Error checking orders table: {e}")
+                raise
+            
+            # Calculate total amount
+            total_amount = 0.0
+            for item in cart_items:
+                total_amount += float(item['price']) * int(item['quantity'])
+            
+            print(f"Creating order: user_id={user_id}, tracking_code={tracking_code}, total={total_amount}")
+            
+            # Create order
+            try:
+                order_id = await conn.fetchval("""
+                    INSERT INTO orders (user_id, tracking_code, total_amount, payment_method, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING order_id
+                """, user_id, tracking_code, total_amount, 'cash_on_delivery', 'pending')
+                
+                print(f"Order created with ID: {order_id}")
+            except Exception as e:
+                print(f"Error creating order: {e}")
+                raise Exception(f"Failed to create order: {e}")
+            
+            # Insert order items
+            try:
+                for item in cart_items:
+                    await conn.execute("""
+                        INSERT INTO order_items (order_id, plant_id, quantity, price)
+                        VALUES ($1, $2, $3, $4)
+                    """, order_id, item['plantid'], item['quantity'], item['price'])
+                print(f"Inserted {len(cart_items)} order items")
+            except Exception as e:
+                print(f"Error inserting order items: {e}")
+                raise Exception(f"Failed to insert order items: {e}")
+            
+            return order_id
 
     async def increase_quantity_to_cart_item(self, session_id, plant_id):
         async with self.pool.acquire() as conn:
@@ -154,17 +226,35 @@ class Database:
                 "UPDATE ratings SET rating = $1, reaction = $2 WHERE user_id = $3 AND plantid = $4",
                 rating.rating, rating.reaction, user_id, rating.plant_id)
 
-    async def get_plants_new(self, query, category):
+    async def get_plants_new(self, query, category, user_id=None):
         async with self.pool.acquire() as conn:
-            if query and category:
-                return await conn.fetch("SELECT * FROM plants WHERE plantname ILIKE $1 AND category = $2 COLLATE pg_catalog.default", 
-                                        f"%{query}%", category)
-            elif query:
-                return await conn.fetch("SELECT * FROM plants WHERE plantname ILIKE $1 COLLATE pg_catalog.default", f"%{query}%")
-            elif category:
-                return await conn.fetch("SELECT * FROM plants WHERE category = $1", category)
+            if user_id:
+                base_query = """
+                    SELECT 
+                        p.*,
+                        CASE WHEN f.user_id IS NOT NULL THEN true ELSE false END as isfavorite
+                    FROM plants p
+                    LEFT JOIN favorites f ON p.plantid = f.plantid AND f.user_id = $1
+                """
+                if query and category:
+                    return await conn.fetch(base_query + " WHERE p.plantname ILIKE $2 AND p.category = $3 COLLATE pg_catalog.default", 
+                                            user_id, f"%{query}%", category)
+                elif query:
+                    return await conn.fetch(base_query + " WHERE p.plantname ILIKE $2 COLLATE pg_catalog.default", user_id, f"%{query}%")
+                elif category:
+                    return await conn.fetch(base_query + " WHERE p.category = $2", user_id, category)
+                else:
+                    return await conn.fetch(base_query, user_id)
             else:
-                return await conn.fetch("SELECT * FROM plants")
+                if query and category:
+                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 AND category = $2 COLLATE pg_catalog.default", 
+                                            f"%{query}%", category)
+                elif query:
+                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 COLLATE pg_catalog.default", f"%{query}%")
+                elif category:
+                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE category = $1", category)
+                else:
+                    return await conn.fetch("SELECT *, false as isfavorite FROM plants")
 
     async def get_categories(self):
         async with self.pool.acquire() as conn:
@@ -290,42 +380,35 @@ class Database:
             return True
 
     async def get_sales_report(self, start_date: str = None, end_date: str = None):
-        """Generate sales report using temporary table"""
+        """Generate sales report using temporary table based on cart items"""
         async with self.pool.acquire() as conn:
             # Drop temporary table if exists (to avoid conflicts)
             await conn.execute("DROP TABLE IF EXISTS temp_sales_report")
             
-            # Create temporary table for report
+            # Create temporary table for report based on cart items
             await conn.execute("""
                 CREATE TEMP TABLE temp_sales_report AS
                 SELECT 
-                    o.id AS order_id,
-                    o.order_number,
-                    o.status,
-                    o.order_date,
+                    u.userid AS user_id,
                     u.username,
                     u.email,
-                    SUM(li.quantity * p.price) AS total_amount,
-                    COUNT(li.id) AS items_count
-                FROM orders o
-                JOIN customer_details cd ON o.customer_id = cd.customer_id
-                JOIN users u ON cd.customer_id = u.userid
-                JOIN order_items oi ON o.id = oi.order_id
-                JOIN line_items li ON oi.line_item_id = li.id
-                JOIN plants p ON li.product_id = p.plantid
-                WHERE ($1::DATE IS NULL OR o.order_date >= $1::DATE)
-                  AND ($2::DATE IS NULL OR o.order_date <= $2::DATE)
-                GROUP BY o.id, o.order_number, o.status, o.order_date, u.username, u.email
-            """, start_date, end_date)
+                    COUNT(DISTINCT ci.plantid) AS items_count,
+                    COALESCE(SUM(ci.quantity), 0) AS total_quantity,
+                    COALESCE(SUM(ci.quantity * p.price), 0) AS total_amount
+                FROM users u
+                LEFT JOIN cart_items ci ON u.userid = ci.userid
+                LEFT JOIN plants p ON ci.plantid = p.plantid
+                GROUP BY u.userid, u.username, u.email
+            """)
             
             # Fetch from temporary table
-            result = await conn.fetch("SELECT * FROM temp_sales_report ORDER BY order_date DESC")
+            result = await conn.fetch("SELECT * FROM temp_sales_report ORDER BY total_amount DESC")
             
             # Temporary table will be automatically dropped when connection closes
             return result
 
     async def get_plant_sales_report(self):
-        """Generate plant sales report"""
+        """Generate plant sales report based on cart items and ratings"""
         async with self.pool.acquire() as conn:
             return await conn.fetch("""
                 SELECT 
@@ -333,19 +416,20 @@ class Database:
                     p.plantname,
                     p.category,
                     p.price,
-                    COUNT(li.id) AS times_sold,
-                    SUM(li.quantity) AS total_quantity_sold,
-                    SUM(li.quantity * p.price) AS total_revenue
+                    COUNT(DISTINCT ci.userid) AS times_sold,
+                    COALESCE(SUM(ci.quantity), 0) AS total_quantity_sold,
+                    COALESCE(SUM(ci.quantity * p.price), 0) AS total_revenue,
+                    COALESCE(AVG(r.rating), 0) AS average_rating,
+                    COUNT(DISTINCT r.user_id) AS total_ratings
                 FROM plants p
-                LEFT JOIN line_items li ON p.plantid = li.product_id
-                LEFT JOIN order_items oi ON li.id = oi.line_item_id
-                LEFT JOIN orders o ON oi.order_id = o.id
+                LEFT JOIN cart_items ci ON p.plantid = ci.plantid
+                LEFT JOIN ratings r ON p.plantid = r.plantid
                 GROUP BY p.plantid, p.plantname, p.category, p.price
                 ORDER BY total_revenue DESC NULLS LAST
             """)
 
     async def get_user_activity_report(self):
-        """Generate user activity report"""
+        """Generate user activity report based on cart items, ratings, and orders"""
         async with self.pool.acquire() as conn:
             return await conn.fetch("""
                 SELECT 
@@ -354,13 +438,118 @@ class Database:
                     u.email,
                     u.is_admin,
                     COUNT(DISTINCT ci.plantid) AS plants_in_cart,
+                    COALESCE(SUM(ci.quantity), 0) AS total_cart_items,
                     COUNT(DISTINCT r.plantid) AS plants_rated,
-                    COUNT(DISTINCT o.id) AS orders_count
+                    COUNT(*) FILTER (WHERE r.rating IS NOT NULL) AS total_ratings_given,
+                    COALESCE(COUNT(DISTINCT o.order_id), 0) AS orders_count
                 FROM users u
                 LEFT JOIN cart_items ci ON u.userid = ci.userid
                 LEFT JOIN ratings r ON u.userid = r.user_id
-                LEFT JOIN customer_details cd ON u.userid = cd.customer_id
-                LEFT JOIN orders o ON cd.customer_id = o.customer_id
+                LEFT JOIN orders o ON u.userid = o.user_id
                 GROUP BY u.userid, u.username, u.email, u.is_admin
                 ORDER BY orders_count DESC NULLS LAST
             """)
+
+    async def add_to_favorites(self, session_id: str, plant_id: int):
+        """Add a plant to user's favorites"""
+        async with self.pool.acquire() as conn:
+            if not session_id:
+                raise Exception("Session ID is required")
+            
+            try:
+                user_id = await self.get_userid_by_sessionid(session_id)
+                print(f"DEBUG: user_id from session: {user_id}, type: {type(user_id)}")
+                if not user_id:
+                    raise Exception("User not found")
+                
+                # Check if plant exists
+                plant_exists = await conn.fetchval("SELECT plantid FROM plants WHERE plantid = $1", plant_id)
+                if not plant_exists:
+                    raise Exception(f"Plant with ID {plant_id} not found")
+                
+                # Check if already in favorites
+                existing = await conn.fetchrow(
+                    "SELECT * FROM favorites WHERE user_id = $1 AND plantid = $2",
+                    user_id, plant_id
+                )
+                if existing:
+                    print(f"DEBUG: Plant {plant_id} already in favorites for user {user_id}")
+                    return  # Already in favorites
+                
+                print(f"DEBUG: Inserting into favorites: user_id={user_id}, plantid={plant_id}")
+                try:
+                    await conn.execute(
+                        "INSERT INTO favorites (user_id, plantid) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                        user_id, plant_id
+                    )
+                    print(f"DEBUG: Successfully added plant {plant_id} to favorites")
+                except Exception as insert_error:
+                    # If ON CONFLICT doesn't work, try without it
+                    print(f"DEBUG: ON CONFLICT not supported, trying regular INSERT: {insert_error}")
+                    await conn.execute(
+                        "INSERT INTO favorites (user_id, plantid) VALUES ($1, $2)",
+                        user_id, plant_id
+                    )
+                    print(f"DEBUG: Successfully added plant {plant_id} to favorites")
+            except Exception as e:
+                import traceback
+                print(f"ERROR in add_to_favorites: {e}")
+                print(f"Session ID: {session_id}, Plant ID: {plant_id}")
+                print(traceback.format_exc())
+                raise
+
+    async def remove_from_favorites(self, session_id: str, plant_id: int):
+        """Remove a plant from user's favorites"""
+        async with self.pool.acquire() as conn:
+            user_id = await self.get_userid_by_sessionid(session_id)
+            if not user_id:
+                raise Exception("User not found")
+            
+            await conn.execute(
+                "DELETE FROM favorites WHERE user_id = $1 AND plantid = $2",
+                user_id, plant_id
+            )
+
+    async def get_favorite_plants(self, session_id: str):
+        """Get all favorite plants for a user"""
+        async with self.pool.acquire() as conn:
+            if not session_id:
+                return []
+            
+            try:
+                user_id = await self.get_userid_by_sessionid(session_id)
+                if not user_id:
+                    return []
+                
+                return await conn.fetch("""
+                    SELECT 
+                        p.plantid,
+                        p.plantname,
+                        p.price,
+                        p.category,
+                        p.humidity,
+                        p.temperature,
+                        p.size,
+                        p.description,
+                        true as isfavorite
+                    FROM favorites f
+                    JOIN plants p ON f.plantid = p.plantid
+                    WHERE f.user_id = $1
+                """, user_id)
+            except Exception as e:
+                # Log error and return empty list
+                print(f"Error in get_favorite_plants: {e}")
+                return []
+
+    async def check_is_favorite(self, session_id: str, plant_id: int) -> bool:
+        """Check if a plant is in user's favorites"""
+        async with self.pool.acquire() as conn:
+            user_id = await self.get_userid_by_sessionid(session_id)
+            if not user_id:
+                return False
+            
+            result = await conn.fetchrow(
+                "SELECT * FROM favorites WHERE user_id = $1 AND plantid = $2",
+                user_id, plant_id
+            )
+            return result is not None

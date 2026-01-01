@@ -91,8 +91,15 @@ async def create_plant(request: Request, plant: Plant):
     return {"plantid": plant_id, "message": "Plant posted successfully"}
 
 @app.get("/plants")
-async def get_plants():
-    plants = await db.get_plants()
+async def get_plants(request: Request):
+    session_id = request.headers.get("session_id")
+    user_id = None
+    if session_id:
+        try:
+            user_id = await db.get_userid_by_sessionid(session_id)
+        except:
+            pass
+    plants = await db.get_plants(user_id)
     return plants
 
 @app.get("/plants/{plant_id}")
@@ -101,8 +108,15 @@ async def get_plant(plant_id: int):
     return plant
 
 @app.get("/plants_new")
-async def get_plants_new(query: str = Query(None), category: Optional[str] = Query(None)):
-    plants = await db.get_plants_new(query, category)
+async def get_plants_new(request: Request, query: str = Query(None), category: Optional[str] = Query(None)):
+    session_id = request.headers.get("session_id")
+    user_id = None
+    if session_id:
+        try:
+            user_id = await db.get_userid_by_sessionid(session_id)
+        except:
+            pass
+    plants = await db.get_plants_new(query, category, user_id)
     return plants
 
 @app.get("/categories")
@@ -354,4 +368,74 @@ async def get_user_activity_report(request: Request):
         report = await db.get_user_activity_report()
         return report
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/favorites/add/{plant_id}")
+async def add_to_favorites(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Session ID is required")
+    try:
+        import traceback
+        await db.add_to_favorites(session_id, plant_id)
+        return {"message": "Plant added to favorites successfully"}
+    except Exception as e:
+        print(f"Error in add_to_favorites endpoint: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/favorites/remove/{plant_id}")
+async def remove_from_favorites(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    try:
+        await db.remove_from_favorites(session_id, plant_id)
+        return {"message": "Plant removed from favorites successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/favorites")
+async def get_favorites(request: Request):
+    session_id = request.headers.get("session_id")
+    if not session_id:
+        return []
+    try:
+        favorites = await db.get_favorite_plants(session_id)
+        return favorites
+    except Exception as e:
+        import traceback
+        print(f"Error in get_favorites: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/favorites/check/{plant_id}")
+async def check_is_favorite(request: Request, plant_id: int):
+    session_id = request.headers.get("session_id")
+    try:
+        is_favorite = await db.check_is_favorite(session_id, plant_id)
+        return {"is_favorite": is_favorite}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/orders/create")
+async def create_order(request: Request):
+    session_id = request.headers.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Session ID is required")
+    try:
+        import traceback
+        order_data = await request.json()
+        print(f"Received order data: {order_data}")
+        tracking_code = order_data.get("tracking_code")
+        cart_items = order_data.get("cart_items", [])
+        if not tracking_code or not cart_items:
+            raise HTTPException(status_code=400, detail="tracking_code and cart_items are required")
+        
+        print(f"Creating order with tracking_code: {tracking_code}, items: {len(cart_items)}")
+        order_id = await db.create_order(session_id, tracking_code, cart_items)
+        print(f"Order created successfully with ID: {order_id}")
+        return {"order_id": order_id, "message": "Order created successfully"}
+    except Exception as e:
+        import traceback
+        print(f"Error in create_order: {e}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

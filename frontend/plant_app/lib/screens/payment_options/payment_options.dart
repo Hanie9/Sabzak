@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/providers/cart_provider.dart';
 import 'package:plant_app/screens/payment_options/payment_utils.dart';
+import 'package:plant_app/screens/payment_options/order_success_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:provider/provider.dart';
 
@@ -124,14 +126,11 @@ class _PaymentOptionsState extends State<PaymentOptions> {
               BuildClickPaymentMethod(
                 assetImageUrl: 'assets/images/cod.png',
                 onPressed: () {
-                  // Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                  //   CupertinoPageRoute(
-                  //     builder: (context) {
-                  //       return const ProfilePage();
-                  //     },
-                  //   ),
-                  //   (route) => false,
-                  // );
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const OrderSuccessPage(),
+                    ),
+                  );
                 },
                 paymentTitle: 'پرداخت در محل',
                 paymentDescription: 'پرداخت درب منزل با دستگاه کارت خوان',

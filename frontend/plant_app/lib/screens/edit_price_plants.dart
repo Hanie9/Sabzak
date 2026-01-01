@@ -16,7 +16,7 @@ class EditPricePage extends StatefulWidget {
 }
 
 class _EditPricePageState extends State<EditPricePage> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
   late Future<List<Plant>> _futurePlants;
   final _priceController = TextEditingController();
   ApiService apiService = ApiService();

@@ -18,7 +18,7 @@ class AddPlantsScreen extends StatefulWidget {
 
 class _AddPlantsScreenState extends State<AddPlantsScreen> {
 
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 

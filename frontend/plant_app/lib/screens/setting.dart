@@ -3,7 +3,6 @@ import 'package:page_transition/page_transition.dart';
 import 'package:plant_app/screens/setting_option/aboutus.dart';
 import 'package:plant_app/screens/setting_option/feedback.dart';
 import 'package:plant_app/screens/setting_option/language.dart';
-import 'package:plant_app/screens/change_password_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/profile_widget.dart';
 
@@ -65,19 +64,6 @@ class _SettingsState extends State<Settings> {
               child: const BuildOptions(
                 icon: Icons.feedback_outlined,
                 title: 'بازخورد‌های شما',
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                    context,
-                    PageTransition(
-                        child: const ChangePasswordPage(),
-                        type: PageTransitionType.bottomToTop));
-              },
-              child: const BuildOptions(
-                icon: Icons.lock_outline,
-                title: 'تغییر رمز عبور',
               ),
             ),
           ],

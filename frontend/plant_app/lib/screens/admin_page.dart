@@ -372,12 +372,14 @@ class _AdminScreenState extends State<AdminScreen> {
                     backgroundColor: Constant.primaryColor,
                   ),
                   onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      CupertinoPageRoute(
+                    Navigator.of(context, rootNavigator: true)
+                        .pushAndRemoveUntil(
+                      MaterialPageRoute(
                         builder: (BuildContext context) {
                           return const RootPage();
                         },
                       ),
+                      (route) => false,
                     );
                   },
                   child: const Text(

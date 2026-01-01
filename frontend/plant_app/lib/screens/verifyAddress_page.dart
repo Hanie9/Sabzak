@@ -28,7 +28,7 @@ class _AddressVerificationPageState extends State<AddressVerificationPage> {
   final _vahedController = TextEditingController();
   final _recieverFirstNameController = TextEditingController();
   final _recieverLastNameController = TextEditingController();
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
 
 
 @override

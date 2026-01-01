@@ -16,6 +16,7 @@ import 'package:plant_app/screens/login_page.dart';
 import 'package:plant_app/screens/notifications.dart';
 import 'package:plant_app/screens/setting.dart';
 import 'package:plant_app/screens/admin_page.dart';
+import 'package:plant_app/screens/change_password_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/profile_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,7 +31,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
 
   Future<Users>? _userProfile;
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
   final picker = ImagePicker();
   File? _image;
   String? _profileImageUrl;
@@ -84,7 +85,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final profileUrl = await ApiService().fetchProfile();
       setState(() {
-        _profileImageUrl = 'http://45.156.23.34:8000/$profileUrl';
+        _profileImageUrl = 'http://45.156.23.34:8888/$profileUrl';
       });
     } catch (e) {
       print(e);
@@ -245,20 +246,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   height: 30.0,
                 ),
                 // profile options
-                SizedBox(
-                  height: size.height * (0.4),
-                  width: size.width,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
                       // Admin panel button (only for admins)
                       if (userProfile.isadmin)
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacement(context, PageTransition(
-                              child: const AdminScreen(),
-                              type: PageTransitionType.fade,
-                            ));
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (context) => const AdminScreen(),
+                              ),
+                            );
                           },
                           child: const BuildOptions(
                             icon: Icons.admin_panel_settings,
@@ -267,6 +268,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       if (userProfile.isadmin)
                         const SizedBox(height: 10),
+                      // Change password button
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, PageTransition(
+                            child: const ChangePasswordPage(),
+                            type: PageTransitionType.bottomToTop,
+                            ),
+                          );
+                        },
+                        child: const BuildOptions(
+                          icon: Icons.lock,
+                          title: 'تغییر رمز عبور',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       // back button
                       GestureDetector(
                         onTap: () {
@@ -292,7 +308,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         onTap: _logout,
                         child: const BuildOptions(icon: Icons.logout, title: 'خروج',)
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],

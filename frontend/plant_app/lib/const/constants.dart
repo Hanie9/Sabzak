@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class Serverinfo{
 
-  static String baseURL = 'http://45.156.23.34:8000/';
+  static String baseURL = 'http://45.156.23.34:8888/';
 
   // API end points
   static String plantURL = 'plants';

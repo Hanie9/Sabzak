@@ -32,7 +32,7 @@ class BuildCustomFormField extends StatelessWidget {
       child: TextFormField(
         keyboardType: keyboardType,
         minLines: minlines,
-        maxLines: maxlines,
+        maxLines: obscureText ? 1 : maxlines,
         obscureText: obscureText,
         onChanged: onChanged,
         controller: controller,

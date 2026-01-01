@@ -31,7 +31,7 @@ class Plant {
     humidity = json['humidity'];
     temperature = json['temperature'];
     category = json['category'];
-    isFavorated = json['isfavorite'];
+    isFavorated = json['isfavorite'] ?? false;
   }
 
   Map<String,dynamic> toJson(){
