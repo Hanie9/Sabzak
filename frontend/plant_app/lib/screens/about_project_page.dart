@@ -13,10 +13,6 @@ class AboutProjectPage extends StatelessWidget {
         title: const BuildCustomAppbar(appbarTitle: 'درباره ما'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: SingleChildScrollView(
         child: Directionality(

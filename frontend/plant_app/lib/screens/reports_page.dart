@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:plant_app/api/api_service.dart';
 import 'package:plant_app/const/constants.dart';
-import 'package:plant_app/screens/admin_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 
 class ReportsPage extends StatefulWidget {
@@ -24,13 +23,6 @@ class _ReportsPageState extends State<ReportsPage> {
         title: const BuildCustomAppbar(appbarTitle: 'گزارش‌ها'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            CupertinoPageRoute(builder: (context) => const AdminScreen()),
-          ),
-        ),
       ),
       body: Column(
         children: [

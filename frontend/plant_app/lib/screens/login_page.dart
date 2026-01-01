@@ -72,33 +72,45 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: Stack(
         children: [
-          // About Us button in top-right corner
-          Positioned(
-            top: 10.0,
-            right: 10.0,
-            child: TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AboutProjectPage(),
-                  ),
-                );
-              },
-              child: const Text(
-                'درباره ما',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontFamily: 'Yekan Bakh',
-                  fontSize: 16.0,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
           Positioned(
             left: 50.0,
             right: 0.0,
             child: Image.asset('assets/images/login_page.png'),
+          ),
+          // About Us button in top-right corner - must be last in Stack to be on top
+          Positioned(
+            top: 10.0,
+            right: 10.0,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const AboutProjectPage(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'درباره ما',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontFamily: 'Yekan Bakh',
+                      fontSize: 16.0,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
           Positioned(
             top: 250.0,

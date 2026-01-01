@@ -88,10 +88,6 @@ class _CreateUserPageState extends State<CreateUserPage> {
         title: const BuildCustomAppbar(appbarTitle: 'ایجاد کاربر جدید'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,

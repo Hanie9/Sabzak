@@ -12,6 +12,7 @@ import 'package:plant_app/screens/remove_plants_screen.dart';
 import 'package:plant_app/screens/show_users_screen.dart';
 import 'package:plant_app/screens/reports_page.dart';
 import 'package:plant_app/screens/create_user_page.dart';
+import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -366,6 +367,27 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ],
               ),
+              ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Constant.primaryColor,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      CupertinoPageRoute(
+                        builder: (BuildContext context) {
+                          return const RootPage();
+                        },
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "فروشگاه",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: "iransans",
+                      fontSize: 20.0,
+                    ),
+                  )),
               Image.asset(
                 selectedImage,
               ),

@@ -15,6 +15,7 @@ import 'package:plant_app/models/users_model.dart';
 import 'package:plant_app/screens/login_page.dart';
 import 'package:plant_app/screens/notifications.dart';
 import 'package:plant_app/screens/setting.dart';
+import 'package:plant_app/screens/admin_page.dart';
 import 'package:plant_app/widgets/build_custom_appbar.dart';
 import 'package:plant_app/widgets/profile_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -250,6 +251,22 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Admin panel button (only for admins)
+                      if (userProfile.isadmin)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(context, PageTransition(
+                              child: const AdminScreen(),
+                              type: PageTransitionType.fade,
+                            ));
+                          },
+                          child: const BuildOptions(
+                            icon: Icons.admin_panel_settings,
+                            title: 'صفحه ادمین',
+                          ),
+                        ),
+                      if (userProfile.isadmin)
+                        const SizedBox(height: 10),
                       // back button
                       GestureDetector(
                         onTap: () {
