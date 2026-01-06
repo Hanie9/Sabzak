@@ -1,4 +1,4 @@
-import asyncpg
+import asyncpg  # type: ignore
 import subprocess
 import os
 from datetime import datetime
@@ -237,22 +237,38 @@ class Database:
                     LEFT JOIN favorites f ON p.plantid = f.plantid AND f.user_id = $1
                 """
                 if query and category:
-                    return await conn.fetch(base_query + " WHERE p.plantname ILIKE $2 AND p.category = $3 COLLATE pg_catalog.default", 
-                                            user_id, f"%{query}%", category)
+                    return await conn.fetch(
+                        base_query + " WHERE p.plantname ILIKE $2 AND p.category = $3 COLLATE pg_catalog.default",
+                        user_id, f"%{query}%", category
+                    )
                 elif query:
-                    return await conn.fetch(base_query + " WHERE p.plantname ILIKE $2 COLLATE pg_catalog.default", user_id, f"%{query}%")
+                    return await conn.fetch(
+                        base_query + " WHERE p.plantname ILIKE $2 COLLATE pg_catalog.default",
+                        user_id, f"%{query}%"
+                    )
                 elif category:
-                    return await conn.fetch(base_query + " WHERE p.category = $2", user_id, category)
+                    return await conn.fetch(
+                        base_query + " WHERE p.category = $2",
+                        user_id, category
+                    )
                 else:
                     return await conn.fetch(base_query, user_id)
             else:
                 if query and category:
-                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 AND category = $2 COLLATE pg_catalog.default", 
-                                            f"%{query}%", category)
+                    return await conn.fetch(
+                        "SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 AND category = $2 COLLATE pg_catalog.default",
+                        f"%{query}%", category
+                    )
                 elif query:
-                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 COLLATE pg_catalog.default", f"%{query}%")
+                    return await conn.fetch(
+                        "SELECT *, false as isfavorite FROM plants WHERE plantname ILIKE $1 COLLATE pg_catalog.default",
+                        f"%{query}%"
+                    )
                 elif category:
-                    return await conn.fetch("SELECT *, false as isfavorite FROM plants WHERE category = $1", category)
+                    return await conn.fetch(
+                        "SELECT *, false as isfavorite FROM plants WHERE category = $1",
+                        category
+                    )
                 else:
                     return await conn.fetch("SELECT *, false as isfavorite FROM plants")
 
@@ -297,7 +313,7 @@ class Database:
         ]
         
         try:
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 env=env,
                 capture_output=True,
@@ -328,7 +344,7 @@ class Database:
         ]
         
         try:
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 env=env,
                 capture_output=True,

@@ -4,7 +4,8 @@ import 'package:plant_app/const/constants.dart';
 class BuildCustomAppbar extends StatelessWidget {
   final String appbarTitle;
   const BuildCustomAppbar({
-    super.key, required this.appbarTitle,
+    super.key,
+    required this.appbarTitle,
   });
 
   @override

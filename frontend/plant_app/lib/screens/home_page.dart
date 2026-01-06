@@ -73,46 +73,46 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildProducts(
       Size size, PlantProvider value, intl.NumberFormat numberformat) {
-    return FutureBuilder<List<Plant>>(
-        future: futurePlants,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+  return FutureBuilder<List<Plant>>(
+    future: futurePlants,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
                 child: LoadingAnimationWidget.staggeredDotsWave(
                     size: 50.0, color: Constant.primaryColor));
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('گیاهی وجود ندارد :('));
-          } else {
-            return ListView.builder(
-                physics: const BouncingScrollPhysics(),
-                scrollDirection: Axis.horizontal,
-                reverse: true,
-                itemCount: snapshot.data!.length,
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return const Center(child: Text('گیاهی وجود ندارد :('));
+      } else {
+        return ListView.builder(
+          physics: const BouncingScrollPhysics(),
+          scrollDirection: Axis.horizontal,
+          reverse: true,
+          itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
-                  final plant = snapshot.data![index];
-                  return GestureDetector(
-                    child: Container(
-                      width: 200.0,
-                      margin: const EdgeInsets.symmetric(horizontal: 18.0),
-                      decoration: BoxDecoration(
-                        color: Constant.primaryColor.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 10.0,
-                            right: 20.0,
-                            child: Container(
-                              height: 40.0,
-                              width: 40.0,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(50.0),
-                              ),
-                              child: IconButton(
+            final plant = snapshot.data![index];
+            return GestureDetector(
+              child: Container(
+                width: 200.0,
+                margin: const EdgeInsets.symmetric(horizontal: 18.0),
+                decoration: BoxDecoration(
+                  color: Constant.primaryColor.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 10.0,
+                      right: 20.0,
+                      child: Container(
+                        height: 40.0,
+                        width: 40.0,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(50.0),
+                        ),
+                        child: IconButton(
                                 onPressed: () async {
                                   try {
                                     if (plant.isFavorated) {
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                                     } else {
                                       await apiService
                                           .addToFavorites(plant.plantId!);
-                                      setState(() {
+                            setState(() {
                                         plant.isFavorated = true;
                                       });
                                       ScaffoldMessenger.of(context)
@@ -153,120 +153,120 @@ class _HomePageState extends State<HomePage> {
                                     );
                                     print('Error: $e');
                                   }
-                                },
-                                icon: Icon(
+                          },
+                          icon: Icon(
                                   plant.isFavorated
                                       ? Icons.favorite
                                       : Icons.favorite_border_outlined,
-                                  color: Constant.primaryColor,
-                                  size: 20.0,
-                                ),
-                              ),
-                            ),
+                            color: Constant.primaryColor,
+                            size: 20.0,
                           ),
-                          Positioned(
-                            top: 20.0,
-                            right: 50.0,
-                            bottom: 50.0,
-                            left: 40.0,
-                            child: FutureBuilder<String>(
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 20.0,
+                      right: 50.0,
+                      bottom: 50.0,
+                      left: 40.0,
+                      child: FutureBuilder<String>(
                               future:
                                   apiService.fetchPlantImage((plant.plantId!)),
-                              builder: (context, imageSnapshot) {
+                        builder: (context, imageSnapshot) {
                                 if (imageSnapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return LoadingAnimationWidget
                                       .staggeredDotsWave(
-                                    color: Constant.primaryColor,
-                                    size: 30.0,
-                                  );
-                                } else if (imageSnapshot.hasError) {
-                                  return const Icon(Icons.error);
-                                } else {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      image: DecorationImage(
-                                        image: NetworkImage(
-                                          imageSnapshot.data!,
-                                        ),
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 10.0,
-                            left: 10.0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10.0, vertical: 2.0),
+                              color: Constant.primaryColor,
+                              size: 30.0,
+                            );
+                          } else if (imageSnapshot.hasError) {
+                            return const Icon(Icons.error);
+                          } else {
+                            return Container(
                               decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20.0)),
-                              child: Text(
-                                '${numberformat.format(int.parse(plant.price.toString()))} تومان'
-                                    .farsiNumber,
-                                textDirection: TextDirection.rtl,
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontFamily: 'Yekan Bakh',
-                                  color: Constant.primaryColor,
-                                  fontSize: 12.0,
-                                  fontWeight: FontWeight.bold,
+                                image: DecorationImage(
+                                  image: NetworkImage(
+                                    imageSnapshot.data!,
+                                  ),
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 30.0,
-                            right: 5.0,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  plant.category,
-                                  textDirection: TextDirection.rtl,
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    fontFamily: 'iransans',
-                                    fontSize: 14.0,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                Text(
-                                  plant.plantName,
-                                  textDirection: TextDirection.rtl,
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    fontFamily: 'Yekan Bakh',
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                            );
+                          }
+                        },
                       ),
                     ),
-                    onTap: () {
+                    Positioned(
+                      bottom: 10.0,
+                      left: 10.0,
+                      child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0, vertical: 2.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20.0)),
+                        child: Text(
+                                '${numberformat.format(int.parse(plant.price.toString()))} تومان'
+                                    .farsiNumber,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontFamily: 'Yekan Bakh',
+                            color: Constant.primaryColor,
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 30.0,
+                      right: 5.0,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            plant.category,
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontFamily: 'iransans',
+                              fontSize: 14.0,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          Text(
+                            plant.plantName,
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontFamily: 'Yekan Bakh',
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                onTap: () {
                       Navigator.of(context).push(CupertinoPageRoute(
-                        builder: (BuildContext context) {
-                          CartProvider().fetchCartItems();
-                          CartProvider().cartItems;
+                    builder: (BuildContext context) {
+                      CartProvider().fetchCartItems();
+                      CartProvider().cartItems;
                           return DetailPage(
                             plant: plant,
                           );
-                        },
-                      ));
                     },
-                  );
+                      ));
+              },
+              );
                 });
-          }
+        }
         });
   }
 
@@ -322,12 +322,12 @@ class _HomePageState extends State<HomePage> {
                               ),
                               showCursor: false,
                               decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.only(right: 5.0),
-                                  hintText: "جستجو",
-                                  border: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  hintStyle: TextStyle(
-                                    fontFamily: 'iransans',
+                                contentPadding: EdgeInsets.only(right: 5.0),
+                                hintText: "جستجو",
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                hintStyle: TextStyle(
+                                  fontFamily: 'iransans',
                                   )),
                             ),
                           ),
@@ -361,36 +361,36 @@ class _HomePageState extends State<HomePage> {
                     } else {
                       List<Category> categories = snapshot.data!;
                       return ListView.builder(
-                          itemCount: categories.length,
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) {
-                            final category = categories[index];
+                        itemCount: categories.length,
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
                             final isSelected =
                                 category.name == _selectedCategory;
-                            return Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
                                     _fetchPlants(
                                         category: categories[index].name);
-                                  });
-                                },
-                                child: Text(
-                                  "| ${category.name} |",
-                                  style: TextStyle(
-                                    fontFamily: 'Yekan Bakh',
-                                    fontSize: 16.0,
+                                });
+                              },
+                              child: Text(
+                                "| ${category.name} |",
+                                style: TextStyle(
+                                  fontFamily: 'Yekan Bakh',
+                                  fontSize: 16.0,
                                     fontWeight: isSelected
                                         ? FontWeight.bold
                                         : FontWeight.w300,
                                     color: isSelected
                                         ? Constant.primaryColor
                                         : null,
-                                  ),
                                 ),
                               ),
-                            );
+                            ),
+                          );
                           });
                     }
                   },
@@ -398,7 +398,7 @@ class _HomePageState extends State<HomePage> {
               ),
               // Product 1
               SizedBox(
-                  height: size.height * 0.3,
+                height: size.height * 0.3,
                   child: _buildProducts(size, plantProvider, numberformat)),
               //new plants text
               Container(
@@ -416,33 +416,33 @@ class _HomePageState extends State<HomePage> {
               ),
               //new plants product 2
               Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                  height: size.height * (0.3),
-                  child: FutureBuilder<List<Plant>>(
-                      future: futureNewPlants,
+                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                height: size.height * (0.3),
+                child: FutureBuilder<List<Plant>>(
+                future: futureNewPlants,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return Center(
                               child: LoadingAnimationWidget.staggeredDotsWave(
                                   size: 50.0, color: Constant.primaryColor));
-                        } else if (snapshot.hasError) {
+                  } else if (snapshot.hasError) {
                           return Center(
                               child: Text('Error: ${snapshot.error}'));
                         } else if (!snapshot.hasData ||
                             snapshot.data!.isEmpty) {
-                          return const Center(child: Text('گیاهی وجود ندارد'));
-                        } else {
-                          return ListView.builder(
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: snapshot.data!.length,
+                    return const Center(child: Text('گیاهی وجود ندارد'));
+                  } else {
+                    return ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: snapshot.data!.length,
                             itemBuilder: (context, index) {
                               return NewPlantWidget(
                                 index: index,
                               );
-                            },
-                          );
-                        }
+                        },
+                      );
+                    }
                       })),
             ],
           ),

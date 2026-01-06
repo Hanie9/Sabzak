@@ -29,7 +29,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-
   Future<Users>? _userProfile;
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
   final picker = ImagePicker();
@@ -37,61 +36,65 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _profileImageUrl;
 
   @override
-  void initState(){
+  void initState() {
     _loadProfileImage();
     _userProfile = ApiService().fetchUserProfile();
     super.initState();
   }
 
   void showNotificationDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Directionality(
-          textDirection: TextDirection.rtl,
-          child: Text(
-            'اطلاعیه‌ها',
-          ),
-        ),
-        content: const SizedBox(
-          width: double.maxFinite,
-          height: 250.0,
-          child: Notifications(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Directionality(
+            textDirection: TextDirection.rtl,
             child: Text(
-              'بستن',
-              style: TextStyle(
-                fontSize: 20.0,
-                fontFamily: "Yekan Bakh",
-                color: Constant.primaryColor,
-                fontWeight: FontWeight.bold
-              ),
+              'اطلاعیه‌ها',
             ),
           ),
-        ],
-      );
-    },
-  );
-}
+          content: const SizedBox(
+            width: double.maxFinite,
+            height: 250.0,
+            child: Notifications(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'بستن',
+                style: TextStyle(
+                    fontSize: 20.0,
+                    fontFamily: "Yekan Bakh",
+                    color: Constant.primaryColor,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _loadProfileImage() async {
     try {
       final profileUrl = await ApiService().fetchProfile();
+      final hasValidProfile = profileUrl.isNotEmpty &&
+          !profileUrl.toLowerCase().contains('no profile') &&
+          !profileUrl.toLowerCase().contains('not found');
       setState(() {
-        _profileImageUrl = 'http://45.156.23.34:8888/$profileUrl';
+        _profileImageUrl =
+            hasValidProfile ? 'http://45.156.23.34:8888/$profileUrl' : null;
       });
     } catch (e) {
-      print(e);
+      setState(() {
+        _profileImageUrl = null;
+      });
     }
   }
-
 
   Future<void> _pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -149,7 +152,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-
     Size size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -163,158 +165,175 @@ class _ProfilePageState extends State<ProfilePage> {
         future: _userProfile,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData) {
-          return const Center(child: Text('No profile data found.'));
-        } else {
-          Users userProfile = snapshot.data!;
-          return Container(
-            padding: const EdgeInsets.all(20.0),
-            height: size.height,
-            width: size.width,
-            child: Column(
-              children: [
-                // profile image
-                Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Constant.primaryColor.withOpacity(0.5),
-                          width: 4.0,
-                        )
-                      ),
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) ? NetworkImage(_profileImageUrl!) : null,
-                        child: (_profileImageUrl == null || _profileImageUrl!.isEmpty) ? const Icon(Icons.person, size: 50) : null,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: InkWell(
-                        onTap: _pickImage,
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData) {
+            return const Center(child: Text('No profile data found.'));
+          } else {
+            Users userProfile = snapshot.data!;
+            return Container(
+              padding: const EdgeInsets.all(20.0),
+              height: size.height,
+              width: size.width,
+              child: Column(
+                children: [
+                  // profile image
+                  Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Constant.primaryColor.withOpacity(0.5),
+                              width: 4.0,
+                            )),
                         child: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: Constant.primaryColor,
-                          child: const Icon(Icons.add, color: Colors.white, size: 20),
+                          radius: 50,
+                          backgroundImage: (_profileImageUrl != null &&
+                                  _profileImageUrl!.isNotEmpty)
+                              ? NetworkImage(_profileImageUrl!)
+                              : null,
+                          child: (_profileImageUrl == null ||
+                                  _profileImageUrl!.isEmpty)
+                              ? const Icon(Icons.person, size: 50)
+                              : null,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                // profile name
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${userProfile.firstName} ${userProfile.lastName}',
-                      style: const TextStyle(
-                        fontFamily: 'iransans',
-                        fontSize: 20.0,
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 5.0,
-                    ),
-                    SizedBox(
-                      height: 20.0,
-                      child: Image.asset('assets/images/9_9.png'),
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 10.0,
-                ),
-                // profile email
-                Text(
-                  userProfile.email,
-                  style: const TextStyle(
-                    fontFamily: 'iransans',
-                    fontSize: 16.0,
-                  ),
-                ),
-                const SizedBox(
-                  height: 30.0,
-                ),
-                // profile options
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                      // Admin panel button (only for admins)
-                      if (userProfile.isadmin)
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute(
-                                builder: (context) => const AdminScreen(),
-                              ),
-                            );
-                          },
-                          child: const BuildOptions(
-                            icon: Icons.admin_panel_settings,
-                            title: 'صفحه ادمین',
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: InkWell(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 15,
+                            backgroundColor: Constant.primaryColor,
+                            child: const Icon(Icons.add,
+                                color: Colors.white, size: 20),
                           ),
                         ),
-                      if (userProfile.isadmin)
-                        const SizedBox(height: 10),
-                      // Change password button
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(context, PageTransition(
-                            child: const ChangePasswordPage(),
-                            type: PageTransitionType.bottomToTop,
-                            ),
-                          );
-                        },
-                        child: const BuildOptions(
-                          icon: Icons.lock,
-                          title: 'تغییر رمز عبور',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 20.0,
+                  ),
+                  // profile name
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${userProfile.firstName} ${userProfile.lastName}',
+                        style: const TextStyle(
+                          fontFamily: 'iransans',
+                          fontSize: 20.0,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      // back button
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(context, PageTransition(
-                            child: const Settings(),
-                            type: PageTransitionType.bottomToTop,
-                            ),
-                          );
-                        },
-                        child: const BuildOptions(icon: Icons.settings, title: 'تنظیمات',),
+                      const SizedBox(
+                        width: 5.0,
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          showNotificationDialog(context);
-                        },
-                        child: const BuildOptions(
-                          icon: Icons.notifications,
-                          title: 'اطلاع رسانی‌ها',
-                        ),
+                      SizedBox(
+                        height: 20.0,
+                        child: Image.asset('assets/images/9_9.png'),
                       ),
-                      const BuildOptions(icon: Icons.share, title: 'شبکه‌های اجتماعی',),
-                      GestureDetector(
-                        onTap: _logout,
-                        child: const BuildOptions(icon: Icons.logout, title: 'خروج',)
-                      ),
-                      ],
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 10.0,
+                  ),
+                  // profile email
+                  Text(
+                    userProfile.email,
+                    style: const TextStyle(
+                      fontFamily: 'iransans',
+                      fontSize: 16.0,
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
+                  const SizedBox(
+                    height: 30.0,
+                  ),
+                  // profile options
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Admin panel button (only for admins)
+                          if (userProfile.isadmin)
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const AdminScreen(),
+                                  ),
+                                );
+                              },
+                              child: const BuildOptions(
+                                icon: Icons.admin_panel_settings,
+                                title: 'صفحه ادمین',
+                              ),
+                            ),
+                          if (userProfile.isadmin) const SizedBox(height: 10),
+                          // Change password button
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                PageTransition(
+                                  child: const ChangePasswordPage(),
+                                  type: PageTransitionType.bottomToTop,
+                                ),
+                              );
+                            },
+                            child: const BuildOptions(
+                              icon: Icons.lock,
+                              title: 'تغییر رمز عبور',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // back button
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                PageTransition(
+                                  child: const Settings(),
+                                  type: PageTransitionType.bottomToTop,
+                                ),
+                              );
+                            },
+                            child: const BuildOptions(
+                              icon: Icons.settings,
+                              title: 'تنظیمات',
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              showNotificationDialog(context);
+                            },
+                            child: const BuildOptions(
+                              icon: Icons.notifications,
+                              title: 'اطلاع رسانی‌ها',
+                            ),
+                          ),
+                          const BuildOptions(
+                            icon: Icons.share,
+                            title: 'شبکه‌های اجتماعی',
+                          ),
+                          GestureDetector(
+                              onTap: _logout,
+                              child: const BuildOptions(
+                                icon: Icons.logout,
+                                title: 'خروج',
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
         },
       ),

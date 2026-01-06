@@ -80,6 +80,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const BuildCustomAppbar(appbarTitle: 'تغییر رمز عبور'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,

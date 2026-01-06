@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:plant_app/models/cart_model.dart';
 import 'package:plant_app/models/plant.dart';
@@ -509,10 +510,24 @@ class ApiService {
         ),
       );
 
-      // Save file to downloads or documents directory
-      final directory = await getApplicationDocumentsDirectory();
+      // Let user pick directory; if canceled, fall back to app documents
+      final selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'محل ذخیره پشتیبان را انتخاب کنید',
+      );
+
+      String targetDir;
+      if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
+        targetDir = selectedDirectory;
+      } else {
+        final fallbackDir = await getApplicationDocumentsDirectory();
+        targetDir = fallbackDir.path;
+      }
+
+      // Ensure directory exists
+      await Directory(targetDir).create(recursive: true);
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/database_backup_$timestamp.sql';
+      final filePath = '$targetDir/database_backup_$timestamp.sql';
       final file = File(filePath);
       await file.writeAsBytes(response.data);
 
