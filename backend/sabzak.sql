@@ -1,3 +1,110 @@
+-- ============================================
+-- TABLES
+-- ============================================
+
+-- Table: users
+CREATE TABLE IF NOT EXISTS users (
+    userid UUID PRIMARY KEY,
+    firstname VARCHAR(255) NOT NULL,
+    lastname VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    is_admin BOOLEAN DEFAULT FALSE,
+    register_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: plants
+CREATE TABLE IF NOT EXISTS plants (
+    plantid SERIAL PRIMARY KEY,
+    plantname VARCHAR(255) NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
+    category VARCHAR(255),
+    humidity INT,
+    temperature VARCHAR(50),
+    description TEXT,
+    size VARCHAR(50)
+);
+
+-- Table: favorites
+CREATE TABLE IF NOT EXISTS favorites (
+    user_id UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    plantid INT NOT NULL REFERENCES plants(plantid) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, plantid)
+);
+
+-- Table: addresses
+CREATE TABLE IF NOT EXISTS addresses (
+    address_id SERIAL PRIMARY KEY,
+    customer_id UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    reciever_first_name VARCHAR(255) NOT NULL,
+    reciever_last_name VARCHAR(255) NOT NULL,
+    street VARCHAR(255) NOT NULL,
+    city VARCHAR(255) NOT NULL,
+    neighborhood VARCHAR(255),
+    alley VARCHAR(255),
+    zip_code VARCHAR(50) NOT NULL,
+    house_number VARCHAR(50) NOT NULL,
+    vahed VARCHAR(50)
+);
+
+-- Table: bazkhords (feedback/comments)
+CREATE TABLE IF NOT EXISTS bazkhords (
+    user_id UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    bazkhord TEXT NOT NULL
+);
+
+-- Table: cart_items
+CREATE TABLE IF NOT EXISTS cart_items (
+    userid UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    plantid INT NOT NULL REFERENCES plants(plantid) ON DELETE CASCADE,
+    quantity INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (userid, plantid)
+);
+
+-- Table: notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    notification_id SERIAL PRIMARY KEY,
+    notification_title VARCHAR(255) NOT NULL,
+    notification_comment TEXT
+);
+
+-- Table: ratings
+CREATE TABLE IF NOT EXISTS ratings (
+    user_id UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    plantid INT NOT NULL REFERENCES plants(plantid) ON DELETE CASCADE,
+    rating NUMERIC(3, 1) NOT NULL CHECK (rating >= 0 AND rating <= 5),
+    reaction TEXT,
+    PRIMARY KEY (user_id, plantid)
+);
+
+-- Table: sessions
+CREATE TABLE IF NOT EXISTS sessions (
+    sessionid VARCHAR(255) PRIMARY KEY,
+    userid UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: orders
+CREATE TABLE IF NOT EXISTS orders (
+    order_id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(userid) ON DELETE CASCADE,
+    tracking_code VARCHAR(50) NOT NULL UNIQUE,
+    total_amount NUMERIC(10, 2) NOT NULL,
+    payment_method VARCHAR(50) DEFAULT 'cash_on_delivery',
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'pending'
+);
+
+-- Table: order_items
+CREATE TABLE IF NOT EXISTS order_items (
+    order_item_id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    plant_id INT NOT NULL REFERENCES plants(plantid) ON DELETE CASCADE,
+    quantity INT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL
+);
+
 
 -- ============================================
 -- VIEWS
@@ -82,11 +189,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 -- ============================================
 -- STORED PROCEDURES
 -- ============================================
-
-
 
 -- Procedure: Update plant price with history
 CREATE OR REPLACE FUNCTION update_plant_price_with_history(
@@ -143,6 +249,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 
