@@ -9,13 +9,16 @@ class FavoritePage extends StatefulWidget {
   const FavoritePage({super.key});
 
   @override
-  State<FavoritePage> createState() => _FavoritePageState();
+  State<FavoritePage> createState() => FavoritePageState();
 }
 
-class _FavoritePageState extends State<FavoritePage> {
+class FavoritePageState extends State<FavoritePage> {
   final ApiService _apiService = ApiService();
   List<Plant> _favoritePlants = [];
   bool _isLoading = true;
+
+  /// Call from outside (e.g. when tab is selected) to refresh the list.
+  void loadFavorites() => _loadFavorites();
 
   @override
   void initState() {

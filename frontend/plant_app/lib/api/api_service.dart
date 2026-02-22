@@ -141,11 +141,31 @@ class ApiService {
       return response.data as Map<String, dynamic>;
     } catch (e) {
       if (e is DioException) {
-        print('Login error: ${e.response?.data}');
-        if (e.response?.data == null) {
-          return {'error': 'No data received'};
+        final data = e.response?.data;
+        final statusCode = e.response?.statusCode;
+        final userMsg = data == null
+            ? (e.response == null
+                ? 'اتصال به سرور برقرار نشد. اینترنت یا آدرس سرور را بررسی کنید.'
+                : (statusCode != null ? 'خطای سرور ($statusCode)' : 'پاسخی از سرور دریافت نشد.'))
+            : null;
+        if (userMsg != null) {
+          print('Login failed: $userMsg (type=${e.type}, status=$statusCode)');
+        } else {
+          print('Login error: type=${e.type}, status=$statusCode, data=$data');
         }
-        return e.response?.data as Map<String, dynamic>;
+        if (data == null) {
+          if (e.response == null) {
+            return {'error': 'اتصال به سرور برقرار نشد. اینترنت یا آدرس سرور را بررسی کنید.'};
+          }
+          return {'error': statusCode != null ? 'خطای سرور ($statusCode)' : 'پاسخی از سرور دریافت نشد.'};
+        }
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+        if (data is String) {
+          return {'error': data.isNotEmpty ? data : 'خطای سرور (${statusCode ?? "نامشخص"})'};
+        }
+        return {'error': 'خطای سرور (${statusCode ?? "نامشخص"})'};
       } else {
         print('Unexpected error: $e');
         return {'error': e.toString()};
@@ -743,7 +763,7 @@ class ApiService {
         '/favorites',
         options: Options(
           headers: {
-            'session_id': sessionId,
+            if (sessionId != null && sessionId.isNotEmpty) 'session_id': sessionId,
           },
         ),
       );
@@ -762,7 +782,7 @@ class ApiService {
         '/favorites/check/$plantId',
         options: Options(
           headers: {
-            'session_id': sessionId,
+            if (sessionId != null && sessionId.isNotEmpty) 'session_id': sessionId,
           },
         ),
       );

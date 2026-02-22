@@ -6,7 +6,6 @@ import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/models/sign_up.dart';
 import 'package:plant_app/providers/login_provider.dart';
 import 'package:plant_app/screens/admin_page.dart';
-// import 'package:plant_app/screens/admin_page.dart';
 import 'package:plant_app/screens/root.dart';
 import 'package:plant_app/screens/sign_up/sign_up_page.dart';
 import 'package:plant_app/screens/about_project_page.dart';
@@ -23,7 +22,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   late ApiService apiService;
   late CustomerModel customerModel;
   bool isApiCalled = false;
@@ -53,7 +51,10 @@ class _LoginPageState extends State<LoginPage> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Unknown error')),
+          SnackBar(
+            content: Text(
+                response['error'] ?? 'خطا در ورود. لطفاً دوباره تلاش کنید.'),
+          ),
         );
       }
     }
@@ -93,7 +94,8 @@ class _LoginPageState extends State<LoginPage> {
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(8),
@@ -123,12 +125,15 @@ class _LoginPageState extends State<LoginPage> {
                 child: Form(
                   key: _formKey,
                   child: SingleChildScrollView(
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: Directionality(
                       textDirection: TextDirection.rtl,
                       child: Column(
                         children: [
-                          const SizedBox(height: 30.0,),
+                          const SizedBox(
+                            height: 30.0,
+                          ),
                           BuildCustomFormField(
                             controller: _usernameController,
                             labelName: 'نام کاربری:',
@@ -152,24 +157,27 @@ class _LoginPageState extends State<LoginPage> {
                           Column(
                             children: [
                               Consumer<LoginProvider>(
-                              builder: (context, provider, child) {
-                                return provider.isLoading
-                                  ? const CircularProgressIndicator()
-                                  : ElevatedButton(
-                                      onPressed: _login,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Constant.primaryColor,
-                                        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
-                                      ),
-                                      child: const Text(
-                                        "ورود",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Yekan Bakh',
-                                          fontSize: 15.0,
-                                        ),
-                                      ),
-                                    );
+                                builder: (context, provider, child) {
+                                  return provider.isLoading
+                                      ? const CircularProgressIndicator()
+                                      : ElevatedButton(
+                                          onPressed: _login,
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Constant.primaryColor,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 30.0,
+                                                      vertical: 10.0)),
+                                          child: const Text(
+                                            "ورود",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontFamily: 'Yekan Bakh',
+                                              fontSize: 15.0,
+                                            ),
+                                          ),
+                                        );
                                 },
                               ),
                               const SizedBox(
@@ -181,14 +189,14 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(
                             height: 30.0,
                           ),
-                          isApiCalled ? const Text(
-                            'لطفا منتظر بمانید ...',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              fontSize: 20.0,
-                              fontFamily: 'Yekan Bakh'
-                            ),
-                          ) : const Text(''),
+                          isApiCalled
+                              ? const Text(
+                                  'لطفا منتظر بمانید ...',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                      fontSize: 20.0, fontFamily: 'Yekan Bakh'),
+                                )
+                              : const Text(''),
                         ],
                       ),
                     ),
@@ -204,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
 
   ElevatedButton _buildNeedRegisterButton(BuildContext context) {
     return ElevatedButton(
-      onPressed: (){
+      onPressed: () {
         Navigator.of(context, rootNavigator: true).pushReplacement(
           CupertinoPageRoute(
             builder: (context) {
@@ -214,19 +222,18 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
       style: ElevatedButton.styleFrom(
-        side: BorderSide(width: 2, color: Constant.primaryColor),
-        overlayColor: Constant.primaryColor,
-        backgroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
-      ),
+          side: BorderSide(width: 2, color: Constant.primaryColor),
+          overlayColor: Constant.primaryColor,
+          backgroundColor: Colors.white,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)),
       child: Text(
         "ثبت نام نکردی؟",
         style: TextStyle(
-          color: Constant.primaryColor,
-          fontFamily: 'Yekan Bakh',
-          fontSize: 15.0,
-          fontWeight: FontWeight.w700
-        ),
+            color: Constant.primaryColor,
+            fontFamily: 'Yekan Bakh',
+            fontSize: 15.0,
+            fontWeight: FontWeight.w700),
       ),
     );
   }

@@ -21,6 +21,8 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   final PersistentTabController _controller =
       PersistentTabController(initialIndex: 0);
+  final GlobalKey<FavoritePageState> _favoritePageKey =
+      GlobalKey<FavoritePageState>();
 
   void navigateToCartTab() {
     _controller.jumpToTab(2);
@@ -32,7 +34,7 @@ class _RootPageState extends State<RootPage> {
   List<Widget> pages() {
     return [
       const HomePage(),
-      const FavoritePage(),
+      FavoritePage(key: _favoritePageKey),
       const CartPage(),
       const ProfilePage(),
     ];
@@ -72,6 +74,11 @@ class _RootPageState extends State<RootPage> {
     return Scaffold(
         body: PersistentTabView(
       context,
+      onItemSelected: (index) {
+        if (index == 1) {
+          _favoritePageKey.currentState?.loadFavorites();
+        }
+      },
       screens: pages(),
       navBarHeight: 51,
       controller: _controller,
