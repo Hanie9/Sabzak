@@ -17,8 +17,7 @@ class AddPlantsScreen extends StatefulWidget {
 }
 
 class _AddPlantsScreenState extends State<AddPlantsScreen> {
-
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: Serverinfo.baseURL.replaceFirst(RegExp(r'/$'), '')));
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
@@ -31,7 +30,7 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
   final _descriptionController = TextEditingController();
   final _sizeController = TextEditingController();
 
-   @override
+  @override
   void dispose() {
     _plantNameController.dispose();
     _priceController.dispose();
@@ -125,7 +124,7 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
     }
   }
 
-   void _clearForm() {
+  void _clearForm() {
     _formKey.currentState!.reset();
     _plantNameController.clear();
     _priceController.clear();
@@ -213,28 +212,28 @@ class _AddPlantsScreenState extends State<AddPlantsScreen> {
                     ),
                     const SizedBox(height: 15),
                     _selectedImage != null
-                    ? Image.file(_selectedImage!)
-                    : GestureDetector(
-                      onTap: _pickImage,
-                      child: Image.asset("assets/images/add_plant.png"),
-                    ),
+                        ? Image.file(_selectedImage!)
+                        : GestureDetector(
+                            onTap: _pickImage,
+                            child: Image.asset("assets/images/add_plant.png"),
+                          ),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        side: BorderSide(width: 2, color: Constant.primaryColor),
-                        overlayColor: Constant.primaryColor,
-                        backgroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0)
-                      ),
+                          side: BorderSide(
+                              width: 2, color: Constant.primaryColor),
+                          overlayColor: Constant.primaryColor,
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30.0, vertical: 10.0)),
                       onPressed: submitPlant,
                       child: Text(
                         'ذخیره',
                         style: TextStyle(
-                          color: Constant.primaryColor,
-                          fontFamily: 'Yekan Bakh',
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w700
-                        ),
+                            color: Constant.primaryColor,
+                            fontFamily: 'Yekan Bakh',
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],

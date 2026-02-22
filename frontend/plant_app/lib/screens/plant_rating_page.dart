@@ -45,10 +45,11 @@ class _PlantRatingPageState extends State<PlantRatingPage> {
     });
     try {
       final response = await ApiService().getRatings(widget.plant.plantId!);
-      final reactions = response['reactions'] as List;
+      final reactionsList = response['reactions'];
+      final reactions = (reactionsList is List) ? reactionsList : <dynamic>[];
       setState(() {
-        _averageRating = response['average_rating'];
-        _reactions = reactions.map((r) => Rating.fromJson(r)).toList();
+        _averageRating = response['average_rating'] ?? 0.0;
+        _reactions = reactions.map((r) => Rating.fromJson(r as Map<String, dynamic>)).toList();
       });
     } catch (e) {
       print('Failed to fetch ratings: $e');

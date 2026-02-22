@@ -1,15 +1,18 @@
 import time
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form, Query
 from database import Database
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
-from pathlib import Path
 from session import create_session
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import aiofiles
-import os
-from pathlib import Path
 
 from models import *
 
@@ -28,6 +31,21 @@ async def lifespan(app: FastAPI):
     await db.dispose()
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """هر خطای هندل‌نشده را به صورت JSON برمی‌گرداند تا فرانت پیام واقعی را ببیند."""
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "خطای سرور",
+            "detail": str(exc),
+        },
+    )
+
 
 @app.post("/images/upload_photo/{plant_id}")
 async def upload_photo(request: Request, plant_id, file: UploadFile = File(...)):
@@ -153,21 +171,31 @@ async def rate_plant(request: Request, rating: Rating):
 async def get_ratings(plant_id: int):
         ratings = await db.get_ratings(plant_id)
         if not ratings:
-            return {"average_rating": 0.0 , "reaction": []}
+            return {"average_rating": 0.0, "reactions": []}
         avg_rating = sum(r["rating"] for r in ratings) / len(ratings)
         reactions = [{"rating": r['rating'], "username": r["username"], "reaction": r["reaction"]} for r in ratings]
         return {"average_rating": avg_rating, "reactions": reactions}
 
 @app.post("/sign_up")
 async def create_user(user: SignUp):
-    userid = await db.check_user_exists(user)
-    if not userid:
+    try:
+        if await db.user_email_or_username_taken(user.email, user.username):
+            return {"error": "این ایمیل یا نام کاربری قبلاً ثبت شده است"}
         await db.create_user(user)
+        userid = await db.get_userid_by_email(user.email)
+        if not userid:
+            return JSONResponse(status_code=500, content={"error": "خطا در ایجاد کاربر", "detail": "userid not found after insert"})
         session_id = create_session()
-        userid = await db.check_user_exists(user)
         await db.add_new_session(userid, session_id)
+        print(f"[ثبت‌نام] توکن (session_id): {session_id}")
         return {"message": "user added successfully", "session_id": session_id}
-    return {"error": "This user already exist"}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": "خطای سرور در ثبت‌نام", "detail": str(e)},
+        )
 
 @app.post("/login")
 async def login_user(user: Login):
@@ -200,7 +228,7 @@ async def get_users_username(request: Request):
     return users
 
 @app.post("/cart/add/{plant_id}")
-async def add_to_cart(request: Request, plant_id):
+async def add_to_cart(request: Request, plant_id: int):
     session_id = request.headers.get("session_id")
     await db.add_to_cart(session_id, plant_id)
     return {"message": "Plant added to cart successfully"}

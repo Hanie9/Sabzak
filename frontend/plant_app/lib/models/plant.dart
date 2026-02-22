@@ -23,15 +23,23 @@ class Plant {
 
 
   Plant.fromJson(Map<String,dynamic> json){
-    plantId = json['plantid'];
-    plantName = json['plantname'];
+    plantId = _toInt(json['plantid']);
+    plantName = json['plantname'] ?? '';
     description = json['description'];
-    price = json['price'];
-    size = json['size'];
-    humidity = json['humidity'];
-    temperature = json['temperature'];
-    category = json['category'];
+    price = _toInt(json['price']) ?? 0;
+    size = json['size'] ?? '';
+    humidity = _toInt(json['humidity']) ?? 0;
+    temperature = json['temperature'] ?? '';
+    category = json['category'] ?? '';
     isFavorated = json['isfavorite'] ?? false;
+  }
+
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
   }
 
   Map<String,dynamic> toJson(){

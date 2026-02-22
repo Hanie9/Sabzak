@@ -43,7 +43,7 @@ class _DetailuserpageState extends State<Detailuserpage> {
             body: Stack(
               children: [
                 Positioned(
-                  top: 71.0,
+                  top: MediaQuery.of(context).padding.top + 8.0,
                   left: 20.0,
                   right: 20.0,
                   child: Row(

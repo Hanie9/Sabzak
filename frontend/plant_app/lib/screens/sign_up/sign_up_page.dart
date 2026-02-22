@@ -62,8 +62,13 @@ class _SignupPageState extends State<SignupPage> {
           );
         }
       } else {
+        final msg = response['error'] ?? 'Unknown error';
+        final detail = response['detail'];
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Unknown error')),
+          SnackBar(
+            content: Text(detail != null ? '$msg: $detail' : msg),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

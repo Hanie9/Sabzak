@@ -7,11 +7,12 @@ import 'package:plant_app/models/plant.dart';
 import 'package:plant_app/models/rating.dart';
 import 'package:plant_app/models/users_model.dart';
 import 'package:plant_app/screens/zarinpal/zarinpal_request_model.dart';
+import 'package:plant_app/const/constants.dart';
 import 'package:plant_app/screens/zarinpal/zarinpal_verify_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: Serverinfo.baseURL.replaceFirst(RegExp(r'/$'), '')));
 
   Future<List<String>> fetchImages() async {
     try {
@@ -105,14 +106,25 @@ class ApiService {
         'firstName': firstName,
         'lastName': lastName,
       });
-      return response.data as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
+      if (data['session_id'] != null) {
+        print('توکن ثبت‌نام (session_id): ${data['session_id']}');
+      }
+      return data;
     } catch (e) {
       if (e is DioException) {
         print('Signup error: ${e.response?.data}');
-        if (e.response?.data == null) {
-          return {'error': 'No data received'};
+        final data = e.response?.data;
+        if (data == null) {
+          return {'error': 'خطای سرور. لطفاً بعداً تلاش کنید.'};
         }
-        return e.response?.data as Map<String, dynamic>;
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+        if (data is String) {
+          return {'error': data.isNotEmpty ? data : 'خطای سرور (${e.response?.statusCode})'};
+        }
+        return {'error': 'خطای سرور (${e.response?.statusCode ?? 'نامشخص'})'};
       } else {
         print('Unexpected error: $e');
         return {'error': e.toString()};
@@ -411,7 +423,15 @@ class ApiService {
     try {
       final response = await _dio.get('/ratings/$plantId');
       if (response.statusCode == 200) {
-        return response.data;
+        final data = response.data;
+        if (data == null) {
+          return {"average_rating": 0.0, "reactions": []};
+        }
+        final map = Map<String, dynamic>.from(data as Map);
+        if (!map.containsKey('reactions') || map['reactions'] == null) {
+          map['reactions'] = [];
+        }
+        return map;
       } else {
         throw Exception('Failed to load ratings');
       }
@@ -438,17 +458,16 @@ class ApiService {
     }
   }
 
-  Future<Map<String, String>?> fetchAddress() async {
+  Future<Map<String, dynamic>?> fetchAddress() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final sessionId = prefs.getString('session_id');
       final response = await _dio.get('/checkout',
           options: Options(headers: {"session_id": sessionId}));
-      if (response.statusCode == 200) {
-        return response.data.cast<String, String>();
-      } else {
-        throw Exception('Failed to fetch address');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data as Map);
       }
+      return null;
     } catch (e) {
       throw Exception('Error fetching address: ${e.toString()}');
     }

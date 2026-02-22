@@ -30,7 +30,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   Future<Users>? _userProfile;
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: Serverinfo.baseURL.replaceFirst(RegExp(r'/$'), '')));
   final picker = ImagePicker();
   File? _image;
   String? _profileImageUrl;
@@ -87,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
           !profileUrl.toLowerCase().contains('not found');
       setState(() {
         _profileImageUrl =
-            hasValidProfile ? 'http://45.156.23.34:8888/$profileUrl' : null;
+            hasValidProfile ? '${Serverinfo.baseURL}$profileUrl' : null;
       });
     } catch (e) {
       setState(() {

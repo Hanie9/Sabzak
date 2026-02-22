@@ -7,8 +7,9 @@ from models import *
 
 
 class Database:
-    def __init__(self, user: str, password: str, host: str, port: str, database: str) -> None: 
-        self.db_info = {"user": user, "password": password, "host": host, "port": port, "database": database}
+    def __init__(self, user: str, password: str, host: str, port: str, database: str) -> None:
+        port_int = int(port) if port else 5432
+        self.db_info = {"user": user, "password": password, "host": host, "port": port_int, "database": database}
         self.pool = None
 
     async def create_pool(self) -> None:
@@ -55,9 +56,11 @@ class Database:
 
     async def create_user(self, user):
         async with self.pool.acquire() as conn:
-            await conn.execute("INSERT INTO users (firstName, lastName, password, username, email)"
-                               "VALUES ($1, $2, $3, $4, $5)", 
-                               user.firstName, user.lastName, user.password, user.username, user.email)
+            await conn.execute(
+                "INSERT INTO users (userid, firstname, lastname, password, username, email) "
+                "VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)",
+                user.firstName, user.lastName, user.password, user.username, user.email
+            )
 
     async def get_users(self):
         async with self.pool.acquire() as conn:
@@ -81,6 +84,20 @@ class Database:
             else:
                 return await conn.fetchval("SELECT userid FROM users WHERE username = $1 AND password = $2",
                                         user.username, user.password)
+
+    async def user_email_or_username_taken(self, email: str, username: str):
+        """برگرد True اگر این ایمیل یا نام کاربری از قبل ثبت شده باشد."""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT 1 FROM users WHERE email = $1 OR username = $2",
+                email, username
+            )
+            return row is not None
+
+    async def get_userid_by_email(self, email: str):
+        """بعد از create_user با ایمیل، userid را برمی‌گرداند."""
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval("SELECT userid FROM users WHERE email = $1", email)
 
     async def get_userid_by_sessionid(self, session_id):
         async with self.pool.acquire() as conn:
@@ -107,12 +124,22 @@ class Database:
     async def get_cart_items(self, session_id):
         async with self.pool.acquire() as conn:
             user_id = await self.get_userid_by_sessionid(session_id)
-            return await conn.fetch("select plantname, price, userid, plantid, quantity from plants NATURAL JOIN cart_items where userid = $1", user_id)
+            if not user_id:
+                return []
+            rows = await conn.fetch(
+                "SELECT plantname, price, userid, plantid, quantity FROM plants "
+                "NATURAL JOIN cart_items WHERE userid = $1", user_id
+            )
+            return [dict(r) for r in rows]
 
     async def add_to_cart(self, session_id, plant_id):
         async with self.pool.acquire() as conn:
             user_id = await self.get_userid_by_sessionid(session_id)
-            await conn.execute("insert INTO cart_items (userid, plantid, quantity) VALUES ($1, $2, 1)", user_id, plant_id)
+            await conn.execute(
+                "INSERT INTO cart_items (userid, plantid, quantity) VALUES ($1, $2, 1) "
+                "ON CONFLICT (userid, plantid) DO UPDATE SET quantity = cart_items.quantity + 1",
+                user_id, plant_id
+            )
 
     async def delete_cart_item(self, session_id, plant_id):
         async with self.pool.acquire() as conn:
@@ -272,10 +299,11 @@ class Database:
                 else:
                     return await conn.fetch("SELECT *, false as isfavorite FROM plants")
 
+    # دسته‌های ثابت اپ (همیشه در فیلتر نمایش داده می‌شوند)
+    CATEGORY_NAMES = ["پیشنهادی", "آپارتمانی", "محل‌کار", "باغچه‌ای", "سمی"]
+
     async def get_categories(self):
-        async with self.pool.acquire() as conn:
-            categories = await conn.fetch("SELECT DISTINCT category AS name FROM plants")
-            return [Categories(name=row['name']) for row in categories]
+        return [Categories(name=n) for n in self.CATEGORY_NAMES]
 
     async def notification(self, notification):
         async with self.pool.acquire() as conn:
@@ -297,63 +325,112 @@ class Database:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_filename = f"{self.db_info['database']}_backup_{timestamp}.sql"
         backup_path = os.path.join(backup_dir, backup_filename)
-        
-        # Build pg_dump command
+        host = (self.db_info.get('host') or '').strip()
+        is_local = host in ('127.0.0.1', 'localhost', '')
+
+        # ۱) سعی با pg_dump روی همین سیستم
         env = os.environ.copy()
-        env['PGPASSWORD'] = self.db_info['password']
-        
+        env['PGPASSWORD'] = str(self.db_info.get('password') or '')
         cmd = [
             'pg_dump',
-            '-h', self.db_info['host'],
-            '-p', str(self.db_info['port']),
-            '-U', self.db_info['user'],
-            '-d', self.db_info['database'],
+            '-h', host or '127.0.0.1',
+            '-p', str(self.db_info.get('port') or 5432),
+            '-U', self.db_info.get('user') or 'postgres',
+            '-d', self.db_info.get('database') or 'postgres',
             '-f', backup_path,
-            '--no-password'
+            '--no-password',
         ]
-        
         try:
-            subprocess.run(
-                cmd,
-                env=env,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
             return backup_path
+        except FileNotFoundError:
+            if not is_local:
+                raise Exception(
+                    "pg_dump یافت نشد. برای بکاپ از سرور دور، کلاینت PostgreSQL را نصب کنید."
+                )
         except subprocess.CalledProcessError as e:
-            raise Exception(f"Backup failed: {e.stderr}")
+            err = (e.stderr or e.stdout or str(e)).strip()
+            if not is_local:
+                raise Exception(f"Backup failed: {err}")
+
+        # ۲) اگر دیتابیس محلی است، اجرای pg_dump داخل کانتینر Docker
+        if is_local:
+            try:
+                with open(backup_path, 'w', encoding='utf-8') as f:
+                    subprocess.run(
+                        [
+                            'docker', 'exec', 'sabzak-db',
+                            'pg_dump', '-U', self.db_info.get('user') or 'postgres',
+                            self.db_info.get('database') or 'sabzak',
+                        ],
+                        stdout=f,
+                        check=True,
+                        text=True,
+                    )
+                return backup_path
+            except FileNotFoundError:
+                raise Exception(
+                    "pg_dump و docker یافت نشد. برای بکاپ محلی یا postgresql را نصب کنید یا Docker را اجرا کنید."
+                )
+            except subprocess.CalledProcessError as e:
+                raise Exception(f"Backup با Docker ناموفق: {e.stderr or e.stdout or str(e)}")
+
+        raise Exception("Backup انجام نشد.")
 
     async def restore_database(self, backup_file_path: str) -> bool:
         """Restore database from a backup file"""
         if not os.path.exists(backup_file_path):
             raise Exception(f"Backup file not found: {backup_file_path}")
-        
-        # Build psql command
+        host = (self.db_info.get('host') or '').strip()
+        is_local = host in ('127.0.0.1', 'localhost', '')
+
         env = os.environ.copy()
-        env['PGPASSWORD'] = self.db_info['password']
-        
+        env['PGPASSWORD'] = str(self.db_info.get('password') or '')
         cmd = [
             'psql',
-            '-h', self.db_info['host'],
-            '-p', str(self.db_info['port']),
-            '-U', self.db_info['user'],
-            '-d', self.db_info['database'],
+            '-h', host or '127.0.0.1',
+            '-p', str(self.db_info.get('port') or 5432),
+            '-U', self.db_info.get('user') or 'postgres',
+            '-d', self.db_info.get('database') or 'postgres',
             '-f', backup_file_path,
-            '--no-password'
+            '--no-password',
         ]
-        
         try:
-            subprocess.run(
-                cmd,
-                env=env,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
             return True
+        except FileNotFoundError:
+            if not is_local:
+                raise Exception(
+                    "psql یافت نشد. برای restore از سرور دور، کلاینت PostgreSQL را نصب کنید."
+                )
         except subprocess.CalledProcessError as e:
-            raise Exception(f"Restore failed: {e.stderr}")
+            err = (e.stderr or e.stdout or str(e)).strip()
+            if not is_local:
+                raise Exception(f"Restore failed: {err}")
+
+        if is_local:
+            try:
+                with open(backup_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    subprocess.run(
+                        [
+                            'docker', 'exec', '-i', 'sabzak-db',
+                            'psql', '-U', self.db_info.get('user') or 'postgres',
+                            '-d', self.db_info.get('database') or 'sabzak',
+                        ],
+                        stdin=f,
+                        check=True,
+                        text=True,
+                        capture_output=True,
+                    )
+                return True
+            except FileNotFoundError:
+                raise Exception(
+                    "psql و docker یافت نشد. برای restore محلی postgresql یا Docker را نصب/اجرا کنید."
+                )
+            except subprocess.CalledProcessError as e:
+                raise Exception(f"Restore با Docker ناموفق: {e.stderr or e.stdout or str(e)}")
+
+        raise Exception("Restore انجام نشد.")
 
     async def change_password(self, session_id: str, old_password: str, new_password: str) -> bool:
         """Change password for a user"""
@@ -388,8 +465,8 @@ class Database:
                 raise Exception("Username or email already exists")
             
             await conn.execute(
-                "INSERT INTO users (firstname, lastname, password, username, email, is_admin) "
-                "VALUES ($1, $2, $3, $4, $5, $6)",
+                "INSERT INTO users (userid, firstname, lastname, password, username, email, is_admin) "
+                "VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)",
                 user_data.firstName, user_data.lastName, user_data.password,
                 user_data.username, user_data.email, is_admin
             )

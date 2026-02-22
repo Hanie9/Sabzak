@@ -10,11 +10,11 @@ import 'package:plant_app/widgets/build_custom_formfield_star.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddressVerificationPage extends StatefulWidget {
-
   const AddressVerificationPage({super.key});
 
   @override
-  _AddressVerificationPageState createState() => _AddressVerificationPageState();
+  _AddressVerificationPageState createState() =>
+      _AddressVerificationPageState();
 }
 
 class _AddressVerificationPageState extends State<AddressVerificationPage> {
@@ -28,10 +28,9 @@ class _AddressVerificationPageState extends State<AddressVerificationPage> {
   final _vahedController = TextEditingController();
   final _recieverFirstNameController = TextEditingController();
   final _recieverLastNameController = TextEditingController();
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://45.156.23.34:8888'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: Serverinfo.baseURL.replaceFirst(RegExp(r'/$'), '')));
 
-
-@override
+  @override
   void initState() {
     super.initState();
     _loadAddress();
@@ -41,13 +40,14 @@ class _AddressVerificationPageState extends State<AddressVerificationPage> {
     try {
       final address = await ApiService().fetchAddress();
       if (address != null) {
-        _recieverFirstNameController.text = address['reciever_first_name'] ?? "";
+        _recieverFirstNameController.text =
+            address['reciever_first_name'] ?? "";
         _recieverLastNameController.text = address['reciever_last_name'] ?? "";
         _streetController.text = address['street'] ?? '';
         _cityController.text = address['city'] ?? '';
         _houseNumberController.text = address['house_number'] ?? '';
         _zipCodeController.text = address['zip_code'] ?? '';
-        _neighborhoodController.text = address ['neighborhood'] ?? "";
+        _neighborhoodController.text = address['neighborhood'] ?? "";
         _alleyController.text = address['alley'] ?? "";
         _vahedController.text = address['vahed'] ?? "";
       }
@@ -61,24 +61,19 @@ class _AddressVerificationPageState extends State<AddressVerificationPage> {
     final sessionId = prefs.getString('session_id');
     if (_formKey.currentState!.validate()) {
       try {
-        final response = await _dio.post(
-          '/verify_address',
-          options: Options(
-            headers: {
-              "session_id": sessionId
-            }
-          ),
-          data: {
-          'reciever_first_name': _recieverFirstNameController.text,
-          'reciever_last_name': _recieverLastNameController.text,
-          'street': _streetController.text,
-          'city': _cityController.text,
-          'neighborhood': _neighborhoodController.text,
-          'zipCode': _zipCodeController.text,
-          'houseNumber': _houseNumberController.text,
-          'alley': _alleyController.text,
-          'vahed': _vahedController.text,
-        });
+        final response = await _dio.post('/verify_address',
+            options: Options(headers: {"session_id": sessionId}),
+            data: {
+              'reciever_first_name': _recieverFirstNameController.text,
+              'reciever_last_name': _recieverLastNameController.text,
+              'street': _streetController.text,
+              'city': _cityController.text,
+              'neighborhood': _neighborhoodController.text,
+              'zipCode': _zipCodeController.text,
+              'houseNumber': _houseNumberController.text,
+              'alley': _alleyController.text,
+              'vahed': _vahedController.text,
+            });
         if (_formKey.currentState!.validate()) {
           if (response.statusCode == 200) {
             Navigator.of(context).push(
@@ -270,23 +265,22 @@ class _AddressVerificationPageState extends State<AddressVerificationPage> {
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Constant.primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 50.0,
-                          vertical: 12.0,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Constant.primaryColor,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 50.0,
+                            vertical: 12.0,
+                          ),
                         ),
-                      ),
-                      onPressed: _verifyAddress,
-                      child: const Text(
-                        'مرحله بعدی',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Yekan Bakh',
-                          fontSize: 20.0,
-                        ),
-                      )
-                    ),
+                        onPressed: _verifyAddress,
+                        child: const Text(
+                          'مرحله بعدی',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Yekan Bakh',
+                            fontSize: 20.0,
+                          ),
+                        )),
                   ],
                 ),
               ),

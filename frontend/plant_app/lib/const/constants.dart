@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-
-class Serverinfo{
-
-  static String baseURL = 'http://45.156.23.34:8888/';
+class Serverinfo {
+  // برای تست محلی: بک‌اند روی همین سیستم (uvicorn روی پورت 8888)
+  // برای دستگاه/امولاتور اندروید: از 10.0.2.2:8888 استفاده کن
+  static String baseURL = 'http://127.0.0.1:8888/';
 
   // API end points
   static String plantURL = 'plants';
@@ -11,7 +11,7 @@ class Serverinfo{
   static String loginuserURL = 'login';
 }
 
-class Constant{
+class Constant {
   static Color primaryColor = const Color(0xFF296e48);
   static Color blackColor = Colors.black54;
 }
