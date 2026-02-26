@@ -258,26 +258,6 @@ AFTER INSERT ON plants
 FOR EACH ROW
 EXECUTE FUNCTION log_plant_insert();
 
--- Trigger: Log plant updates
-CREATE OR REPLACE FUNCTION log_plant_update()
-RETURNS TRIGGER AS $$
-BEGIN
-    CREATE TABLE IF NOT EXISTS plant_audit_log (
-        id SERIAL PRIMARY KEY,
-        plantid INT,
-        action VARCHAR(50),
-        plantname VARCHAR(255),
-        old_price INT,
-        new_price INT,
-        action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    
-    INSERT INTO plant_audit_log (plantid, action, plantname, old_price, new_price)
-    VALUES (NEW.plantid, 'UPDATE', NEW.plantname, OLD.price, NEW.price);
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Trigger: Log plant updates
 CREATE OR REPLACE FUNCTION log_plant_update()
